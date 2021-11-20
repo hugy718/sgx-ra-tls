@@ -108,3 +108,4 @@ mrproper: clean
 	$(RM) wolfssl-client
 	$(MAKE) -C server clean
 	$(RM) option/ra_tls_options.c
+	$(RM) ra/*.o

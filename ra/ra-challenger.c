@@ -148,48 +148,48 @@ void extract_x509_extensions
                            sizeof(attn_report->ias_report_signature));
 }
 
-/**
- * Extract ECDSA related extensions from X509.
- */
-void ecdsa_extract_x509_extensions
-(
-    uint8_t* ext,
-    int ext_len,
-    ecdsa_attestation_evidence_t* evidence
-)
-{
-    extract_x509_extension(ext, ext_len, quote_oid, ias_oid_len,
-                           evidence->quote, &evidence->quote_len,
-                           sizeof(evidence->quote));
+// /**
+//  * Extract ECDSA related extensions from X509.
+//  */
+// void ecdsa_extract_x509_extensions
+// (
+//     uint8_t* ext,
+//     int ext_len,
+//     ecdsa_attestation_evidence_t* evidence
+// )
+// {
+//     extract_x509_extension(ext, ext_len, quote_oid, ias_oid_len,
+//                            evidence->quote, &evidence->quote_len,
+//                            sizeof(evidence->quote));
 
-    extract_x509_extension(ext, ext_len, pck_crt_oid, ias_oid_len,
-                           evidence->pck_crt, &evidence->pck_crt_len,
-                           sizeof(evidence->pck_crt));
+//     extract_x509_extension(ext, ext_len, pck_crt_oid, ias_oid_len,
+//                            evidence->pck_crt, &evidence->pck_crt_len,
+//                            sizeof(evidence->pck_crt));
 
-    extract_x509_extension(ext, ext_len, pck_sign_chain_oid, ias_oid_len,
-                           evidence->pck_sign_chain, &evidence->pck_sign_chain_len,
-                           sizeof(evidence->pck_sign_chain));
+//     extract_x509_extension(ext, ext_len, pck_sign_chain_oid, ias_oid_len,
+//                            evidence->pck_sign_chain, &evidence->pck_sign_chain_len,
+//                            sizeof(evidence->pck_sign_chain));
 
-    extract_x509_extension(ext, ext_len, tcb_info_oid, ias_oid_len,
-                           evidence->tcb_info, &evidence->tcb_info_len,
-                           sizeof(evidence->tcb_info));
+//     extract_x509_extension(ext, ext_len, tcb_info_oid, ias_oid_len,
+//                            evidence->tcb_info, &evidence->tcb_info_len,
+//                            sizeof(evidence->tcb_info));
     
-    extract_x509_extension(ext, ext_len, tcb_sign_chain_oid, ias_oid_len,
-                           evidence->tcb_sign_chain, &evidence->tcb_sign_chain_len,
-                           sizeof(evidence->tcb_sign_chain));
+//     extract_x509_extension(ext, ext_len, tcb_sign_chain_oid, ias_oid_len,
+//                            evidence->tcb_sign_chain, &evidence->tcb_sign_chain_len,
+//                            sizeof(evidence->tcb_sign_chain));
 
-    extract_x509_extension(ext, ext_len, qe_identity_oid, ias_oid_len,
-                           evidence->qe_identity, &evidence->qe_identity_len,
-                           sizeof(evidence->qe_identity));
+//     extract_x509_extension(ext, ext_len, qe_identity_oid, ias_oid_len,
+//                            evidence->qe_identity, &evidence->qe_identity_len,
+//                            sizeof(evidence->qe_identity));
 
-    extract_x509_extension(ext, ext_len, root_ca_crl_oid, ias_oid_len,
-                           evidence->root_ca_crl, &evidence->root_ca_crl_len,
-                           sizeof(evidence->root_ca_crl));
+//     extract_x509_extension(ext, ext_len, root_ca_crl_oid, ias_oid_len,
+//                            evidence->root_ca_crl, &evidence->root_ca_crl_len,
+//                            sizeof(evidence->root_ca_crl));
 
-    extract_x509_extension(ext, ext_len, pck_crl_oid, ias_oid_len,
-                           evidence->pck_crl, &evidence->pck_crl_len,
-                           sizeof(evidence->pck_crl));
-}
+//     extract_x509_extension(ext, ext_len, pck_crl_oid, ias_oid_len,
+//                            evidence->pck_crl, &evidence->pck_crl_len,
+//                            sizeof(evidence->pck_crl));
+// }
 
 /**
  * @return 1 if it is an EPID-based attestation RA-TLS
@@ -239,25 +239,25 @@ void dprintf_epid_ratls_cert
     dprintf(fd, "%.*s\n", report.ias_report_len, report.ias_report);
 }
 
-/**
- * Pretty-print information of ECDSA-based RA-TLS certificate to file descriptor.
- */
-static
-void dprintf_ecdsa_ratls_cert
-(
-    int fd,
-    uint8_t* der_crt,
-    uint32_t der_crt_len
-)
-{
-    ecdsa_attestation_evidence_t evidence;
-    ecdsa_extract_x509_extensions(der_crt, der_crt_len, &evidence);
+// /**
+//  * Pretty-print information of ECDSA-based RA-TLS certificate to file descriptor.
+//  */
+// static
+// void dprintf_ecdsa_ratls_cert
+// (
+//     int fd,
+//     uint8_t* der_crt,
+//     uint32_t der_crt_len
+// )
+// {
+//     ecdsa_attestation_evidence_t evidence;
+//     ecdsa_extract_x509_extensions(der_crt, der_crt_len, &evidence);
 
-    dprintf(fd, "\nTCB info: ");
-    dprintf(fd, "%.*s\n", evidence.tcb_info_len, evidence.tcb_info);
-    dprintf(fd, "\nPCK Certificate:\n");
-    dprintf(fd, "%.*s\n", evidence.pck_crt_len, evidence.pck_crt);
-}
+//     dprintf(fd, "\nTCB info: ");
+//     dprintf(fd, "%.*s\n", evidence.tcb_info_len, evidence.tcb_info);
+//     dprintf(fd, "\nPCK Certificate:\n");
+//     dprintf(fd, "%.*s\n", evidence.pck_crt_len, evidence.pck_crt);
+// }
 
 void dprintf_ratls_cert
 (
@@ -269,7 +269,9 @@ void dprintf_ratls_cert
     if (is_epid_ratls_cert(der_crt, der_crt_len)) {
         dprintf_epid_ratls_cert(fd, der_crt, der_crt_len);
     } else {
-        dprintf_ecdsa_ratls_cert(fd, der_crt, der_crt_len);
+        // dprintf_ecdsa_ratls_cert(fd, der_crt, der_crt_len);
+        dprintf(fd, "Not Using EPID RA");
+        return;
     }
 
     sgx_quote_t quote;

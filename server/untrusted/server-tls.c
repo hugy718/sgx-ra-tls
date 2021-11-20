@@ -40,9 +40,6 @@
 
 #define DEFAULT_PORT 11111
 
-#define CIPHER_LIST "ECDHE-ECDSA-AES128-GCM-SHA256"
-
-
 
 int server_connect(sgx_enclave_id_t id)
 {

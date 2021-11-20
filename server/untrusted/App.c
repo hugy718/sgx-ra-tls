@@ -22,7 +22,7 @@
 
 #include "stdafx.h"
 #include "App.h" /* contains include of Enclave_u.h which has wolfSSL header files */
-#include "client-tls.h"
+// #include "client-tls.h"
 #include "server-tls.h"
 
 /* Use Debug SGX ? */
@@ -53,13 +53,13 @@ int main(int argc, char* argv[]) /* not using since just testing w/ wc_test */
 		printf("Usage:\n"
                "\t-c Run a TLS client in enclave\n"
                "\t-s Run a TLS server in enclave\n"
-#ifdef HAVE_WOLFSSL_TEST
-               "\t-t Run wolfCrypt tests only \n"
-#endif /* HAVE_WOLFSSL_TEST */
+// #ifdef HAVE_WOLFSSL_TEST
+//                "\t-t Run wolfCrypt tests only \n"
+// #endif /* HAVE_WOLFSSL_TEST */
 
-#ifdef HAVE_WOLFSSL_BENCHMARK
-               "\t-b Run wolfCrypt benchmarks in enclave\n"
-#endif /* HAVE_WOLFSSL_BENCHMARK */
+// #ifdef HAVE_WOLFSSL_BENCHMARK
+//                "\t-b Run wolfCrypt benchmarks in enclave\n"
+// #endif /* HAVE_WOLFSSL_BENCHMARK */
                );
         return 0;
 	}
@@ -75,31 +75,31 @@ int main(int argc, char* argv[]) /* not using since just testing w/ wc_test */
 
 
     switch(argv[1][1]) {
-        case 'c':
-            printf("Client Test:\n");
-            client_connect(id);
-            break;
+        // case 'c':
+        //     printf("Client Test:\n");
+        //     client_connect(id);
+        //     break;
 
         case 's':
             printf("Server Test:\n");
             server_connect(id);
             break;
 
-#ifdef HAVE_WOLFSSL_TEST
-        case 't':
-            printf("Crypt Test:\n");
-            wc_test(id, &sgxStatus, &args);
-            printf("Crypt Test: Return code %d\n", args.return_code);
-            break;
-#endif /* HAVE_WOLFSSL_TEST */
+// #ifdef HAVE_WOLFSSL_TEST
+//         case 't':
+//             printf("Crypt Test:\n");
+//             wc_test(id, &sgxStatus, &args);
+//             printf("Crypt Test: Return code %d\n", args.return_code);
+//             break;
+// #endif /* HAVE_WOLFSSL_TEST */
 
-#ifdef HAVE_WOLFSSL_BENCHMARK
-       case 'b':
-            printf("\nBenchmark Test:\n");
-            wc_benchmark_test(id, &sgxStatus, &args);
-            printf("Benchmark Test: Return code %d\n", args.return_code);
-            break;
-#endif /* HAVE_WOLFSSL_BENCHMARK */
+// #ifdef HAVE_WOLFSSL_BENCHMARK
+//        case 'b':
+//             printf("\nBenchmark Test:\n");
+//             wc_benchmark_test(id, &sgxStatus, &args);
+//             printf("Benchmark Test: Return code %d\n", args.return_code);
+//             break;
+// #endif /* HAVE_WOLFSSL_BENCHMARK */
         default:
             printf("Unrecognized option set!\n");
             break;

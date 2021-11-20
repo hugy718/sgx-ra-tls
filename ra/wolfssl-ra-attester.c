@@ -20,7 +20,7 @@
 #include "ra.h"
 #include "wolfssl-ra.h"
 #include "ra-attester.h"
-#include "ra-attester_private.h"
+// #include "ra-attester_private.h"
 #include "ra_private.h"
 
 /**
