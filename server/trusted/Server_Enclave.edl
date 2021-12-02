@@ -4,15 +4,9 @@ enclave {
 	include "wolfssl/wolfcrypt/settings.h"
 	include "wolfssl/wolfcrypt/types.h"
 
-    include "wolfcrypt/test/test.h"
-    include "wolfcrypt/benchmark/benchmark.h"
-
-  from "ra_tls.edl" import *;
+  from "attester.edl" import *;
 
     trusted {
-        public int wc_test([user_check]void* args);
-        public int wc_benchmark_test([user_check]void* args);
-
 		public int enc_wolfSSL_Init(void);
 		public void enc_wolfSSL_Debugging_ON(void);
 		public void enc_wolfSSL_Debugging_OFF(void);

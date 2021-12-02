@@ -23,7 +23,7 @@
 #define CLIENT_TLS_H
 
 #include "sgx_urts.h"	 /* for enclave_id etc.*/
-#include "Wolfssl_Enclave_u.h"   /* contains untrusted wrapper functions used to call enclave functions*/
+#include "Server_Enclave_u.h"   /* contains untrusted wrapper functions used to call enclave functions*/
 
 int client_connect(sgx_enclave_id_t id);
 

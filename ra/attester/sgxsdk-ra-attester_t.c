@@ -6,7 +6,7 @@
 #include "ra.h"
 #include "ra-attester.h"
 #include "ra_private.h"
-#include "ra_tls_t.h" // OCALLs
+#include "attester_t.h" // OCALLs
 
 /* Trusted portion (called from within the enclave) to do remote
    attestation with the SGX SDK.  */

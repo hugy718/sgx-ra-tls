@@ -1,5 +1,4 @@
-######## Intel(R) SGX SDK Settings ########
-UNTRUSTED_DIR=untrusted
+### Intel(R) SGX SDK Settings ###
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
 else ifeq ($(findstring -m32, $(CXXFLAGS)), -m32)
@@ -30,62 +29,11 @@ else
         SGX_COMMON_CFLAGS += -O2
 endif
 
-SGX_RA_TLS_ROOT="../ra"
-DEPS_DIR="../deps"
-
-######## App Settings ########
-
 ifneq ($(SGX_MODE), HW)
 	Urts_Library_Name := sgx_urts_sim
 else
 	Urts_Library_Name := sgx_urts
 endif
-
-Wolfssl_C_Extra_Flags := -DWOLFSSL_SGX -DUSE_WOLFSSL
-Wolfssl_Include_Paths := -I$(WOLFSSL_ROOT)/ \
-						 -I$(WOLFSSL_ROOT)/wolfcrypt/
-
-ifeq ($(HAVE_WOLFSSL_TEST), 1)
-	Wolfssl_Include_Paths += -I$(WOLFSSL_ROOT)/wolfcrypt/test/
-	Wolfssl_C_Extra_Flags += -DHAVE_WOLFSSL_TEST
-endif
-
-ifeq ($(HAVE_WOLFSSL_BENCHMARK), 1)
-	Wolfssl_Include_Paths += -I$(WOLFSSL_ROOT)/wolfcrypt/benchmark/
-	Wolfssl_C_Extra_Flags += -DHAVE_WOLFSSL_BENCHMARK
-endif
-
-
-
-App_C_Files := $(UNTRUSTED_DIR)/App.c $(UNTRUSTED_DIR)/client-tls.c $(UNTRUSTED_DIR)/server-tls.c $(UNTRUSTED_DIR)/sgxsdk-ra-attester_u.c $(UNTRUSTED_DIR)/ias-ra.c
-
-App_Include_Paths := $(Wolfssl_Include_Paths) -I$(UNTRUSTED_DIR) -I$(SGX_SDK)/include -I$(SGX_RA_TLS_ROOT) -I$(DEPS_DIR)/local/include
-
-App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths) $(Wolfssl_C_Extra_Flags)
-
-# Three configuration modes - Debug, prerelease, release
-#   Debug - Macro DEBUG enabled.
-#   Prerelease - Macro NDEBUG and EDEBUG enabled.
-#   Release - Macro NDEBUG enabled.
-ifeq ($(SGX_DEBUG), 1)
-        App_C_Flags += -DDEBUG -UNDEBUG -UEDEBUG
-else ifeq ($(SGX_PRERELEASE), 1)
-        App_C_Flags += -DNDEBUG -DEDEBUG -UDEBUG
-else
-        App_C_Flags += -DNDEBUG -UEDEBUG -UDEBUG
-endif
-
-App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -L$(DEPS_DIR)/local/lib -l$(Urts_Library_Name) -lpthread $(DEPS_DIR)/local/lib/libcurl-wolfssl.a $(DEPS_DIR)/local/lib/libwolfssl.a -lz -lm
-
-ifneq ($(SGX_MODE), HW)
-	App_Link_Flags += -lsgx_uae_service_sim
-else
-	App_Link_Flags += -lsgx_uae_service
-endif
-
-App_C_Objects := $(App_C_Files:.c=.o)
-
-
 
 ifeq ($(SGX_MODE), HW)
 ifneq ($(SGX_DEBUG), 1)
@@ -94,16 +42,60 @@ Build_Mode = HW_RELEASE
 endif
 endif
 endif
+### Intel(R) SGX SDK Settings ###
 
+### Project Settings ###
+DEPS_LIBS_DIR="../deps/local/lib"
+SGX_RA_TLS_ATTESTER_DIR="../ra/attester"
+SGX_RA_TLS_CHALLENGER_DIR="../ra/challenger"
+SGX_RA_TLS_COMMON_DIR="../ra/common"
+SGX_RA_TLS_Include_Paths := -I$(SGX_RA_TLS_ATTESTER_DIR) \
+						 -I$(SGX_RA_TLS_CHALLENGER_DIR) \
+						 -I$(SGX_RA_TLS_COMMON_DIR)
 
-.PHONY: all run
+Common_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes -I.
+# This flag needed for some wolfssl header
+Wolfssl_C_Extra_Flags := -DWOLFSSL_SGX 
+Server_App_C_Flags := $(Common_C_Cpp_Flags) $(Wolfssl_C_Extra_Flags) -Iuntrusted -I$(SGX_SDK)/include $(SGX_RA_TLS_Include_Paths) -I$(DEPS_INCLUDE_DIR)
 
+# Three configuration modes - Debug, prerelease, release
+#   Debug - Macro DEBUG enabled.
+#   Prerelease - Macro NDEBUG and EDEBUG enabled.
+#   Release - Macro NDEBUG enabled.
+ifeq ($(SGX_DEBUG), 1)
+        Server_App_C_Flags += -DDEBUG -UNDEBUG -UEDEBUG
+else ifeq ($(SGX_PRERELEASE), 1)
+        Server_App_C_Flags += -DNDEBUG -DEDEBUG -UDEBUG
+else
+        Server_App_C_Flags += -DNDEBUG -UEDEBUG -UDEBUG
+endif
+### Project Settings ###
+
+### Linking setting ###
+Server_App_Link_Flags := $(SGX_COMMON_CFLAGS) \
+	-L$(SGX_RA_TLS_LIB) -lratls_attester_u \
+	-L$(SGX_LIBRARY_PATH)	-l$(Urts_Library_Name) \
+	-L$(DEPS_LIBS_DIR) $(DEPS_LIBS_DIR)/libcurl-wolfssl.a $(DEPS_LIBS_DIR)/libwolfssl.a \
+	-lpthread -lz -lm
+
+## Add sgx_uae_service library to link ##
+ifneq ($(SGX_MODE), HW)
+	Server_App_Link_Flags += -lsgx_uae_service_sim
+else
+	Server_App_Link_Flags += -lsgx_uae_service
+endif
+### Linking setting ###
+
+### Phony targets ###
+.PHONY: all clean
+
+### Build all ###
 ifeq ($(Build_Mode), HW_RELEASE)
 all: App
 	@echo "Build App [$(Build_Mode)|$(SGX_ARCH)] success!"
 	@echo
 	@echo "*********************************************************************************************************************************************************"
-	@echo "PLEASE NOTE: In this mode, please sign the Wolfssl_Enclave.so first using Two Step Sign mechanism before you run the app to launch and access the enclave."
+	@echo "PLEASE NOTE: In this mode, please sign the Server_Enclave.so first using Two Step Sign mechanism before you run the app to launch and access the enclave."
 	@echo "*********************************************************************************************************************************************************"
 	@echo
 
@@ -111,34 +103,33 @@ else
 all: App
 endif
 
-run: all
-ifneq ($(Build_Mode), HW_RELEASE)
-	@$(CURDIR)/App
-	@echo "RUN  =>  App [$(SGX_MODE)|$(SGX_ARCH), OK]"
-endif
+### Sources ###
+Server_App_C_Files := untrusted/App.c untrusted/client-tls.c untrusted/server-tls.c
+Server_App_C_Objects := $(Server_App_C_Files:.c=.o)
 
-######## App Objects ########
-
-$(UNTRUSTED_DIR)/Wolfssl_Enclave_u.c: $(SGX_EDGER8R) trusted/Wolfssl_Enclave.edl
-	@cd $(UNTRUSTED_DIR) && $(SGX_EDGER8R) --untrusted ../trusted/Wolfssl_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_ROOT)
+## Edger8r related sources ##
+untrusted/Server_Enclave_u.c: $(SGX_EDGER8R) trusted/Server_Enclave.edl
+	@cd ./untrusted && $(SGX_EDGER8R) --untrusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
 	@echo "GEN  =>  $@"
 
-$(UNTRUSTED_DIR)/Wolfssl_Enclave_u.o: $(UNTRUSTED_DIR)/Wolfssl_Enclave_u.c
-	@echo $(CC) $(App_C_Flags) -c $< -o $@
-	@$(CC) $(App_C_Flags) -c $< -o $@
+untrusted/Server_Enclave_u.o: untrusted/Server_Enclave_u.c
+	@echo $(CC) $(Server_App_C_Flags) -c $< -o $@
+	@$(CC) $(Server_App_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
+## Edger8r related sources ##
 
-$(UNTRUSTED_DIR)/%.o: $(UNTRUSTED_DIR)/%.c
-	@echo $(CC) $(App_C_Flags) -c $< -o $@
-	@$(CC) $(App_C_Flags) -c $< -o $@
+untrusted/%.o: untrusted/%.c
+	@echo $(CC) $(Server_App_C_Flags) -c $< -o $@
+	@$(CC) $(Server_App_C_Flags) -c $< -o $@
 	@echo "CC  <=  $<"
 
-App: $(UNTRUSTED_DIR)/Wolfssl_Enclave_u.o $(App_C_Objects)
-	@$(CC) $^ -o $@ $(App_Link_Flags)
+## Build server app ##
+App: untrusted/Server_Enclave_u.o $(Server_App_C_Objects)
+	@echo $(CC) $(Server_App_Link_Flags) -c $< -o $@
+	@$(CC) $^ -o $@ $(Server_App_Link_Flags)
 	@echo "LINK =>  $@"
+### Sources ###
 
-
-.PHONY: clean
-
+### Clean command ###
 clean:
-	@rm -f App $(App_C_Objects) $(UNTRUSTED_DIR)/Wolfssl_Enclave_u.* 
+	@rm -f App $(Server_App_C_Objects) untrusted/Server_Enclave_u.* 

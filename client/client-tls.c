@@ -20,9 +20,9 @@
  */
 
 /* the usual suspects */
-#ifdef SGX_RATLS_MUTUAL
-#include <assert.h>
-#endif
+// #ifdef SGX_RATLS_MUTUAL
+// #include <assert.h>
+// #endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -41,11 +41,11 @@
 
 #include <sgx_quote.h>
 
-#include "ra/ra.h"
-#ifdef SGX_RATLS_MUTUAL
-#include "ra/ra-attester.h"
-#endif
-#include "ra/ra-challenger.h"
+#include "ra/common/ra.h"
+// #ifdef SGX_RATLS_MUTUAL
+// #include "ra/ra-attester.h"
+// #endif
+#include "ra/challenger/ra-challenger.h"
 
 static
 int cert_verify_callback(int preverify, WOLFSSL_X509_STORE_CTX* store) {
@@ -60,9 +60,9 @@ int cert_verify_callback(int preverify, WOLFSSL_X509_STORE_CTX* store) {
     return !ret;
 }
 
-#ifdef SGX_RATLS_MUTUAL
-extern struct ra_tls_options my_ra_tls_options;
-#endif
+// #ifdef SGX_RATLS_MUTUAL
+// extern struct ra_tls_options my_ra_tls_options;
+// #endif
 
 int main(int argc, char** argv)
 {
@@ -99,18 +99,18 @@ int main(int argc, char** argv)
         return -1;
     }
 
-#ifdef SGX_RATLS_MUTUAL
-    uint8_t key[2048]; uint8_t crt[8192];
-    int key_len = sizeof(key);
-    int crt_len = sizeof(crt);
+// #ifdef SGX_RATLS_MUTUAL
+//     uint8_t key[2048]; uint8_t crt[8192];
+//     int key_len = sizeof(key);
+//     int crt_len = sizeof(crt);
 
-    create_key_and_x509(key, &key_len, crt, &crt_len, &my_ra_tls_options);
-    int ret = wolfSSL_CTX_use_PrivateKey_buffer(ctx, key, key_len, SSL_FILETYPE_ASN1);
-    assert(SSL_SUCCESS == ret);
+//     create_key_and_x509(key, &key_len, crt, &crt_len, &my_ra_tls_options);
+//     int ret = wolfSSL_CTX_use_PrivateKey_buffer(ctx, key, key_len, SSL_FILETYPE_ASN1);
+//     assert(SSL_SUCCESS == ret);
 
-    ret = wolfSSL_CTX_use_certificate_buffer(ctx, crt, crt_len, SSL_FILETYPE_ASN1);
-    assert(SSL_SUCCESS == ret);
-#endif
+//     ret = wolfSSL_CTX_use_certificate_buffer(ctx, crt, crt_len, SSL_FILETYPE_ASN1);
+//     assert(SSL_SUCCESS == ret);
+// #endif
     
     /* Initialize the server address struct with zeros */
     memset(&servAddr, 0, sizeof(servAddr));

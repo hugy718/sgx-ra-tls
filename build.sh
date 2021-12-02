@@ -24,5 +24,4 @@ make -j`nproc` deps
 # build clients and servers
 echo "Building clients and servers..."
 make clients || exit 1
-make clean || exit 1
 make server || exit 1

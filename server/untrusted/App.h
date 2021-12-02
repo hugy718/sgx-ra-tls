@@ -26,10 +26,10 @@
 #include <sys/types.h> /* for send/recv */
 #include <sys/socket.h> /* for send/recv */
 
-#include "Wolfssl_Enclave_u.h"   /* contains untrusted wrapper functions used to call enclave functions*/
+#include "Server_Enclave_u.h"   /* contains untrusted wrapper functions used to call enclave functions*/
 
 #define BENCH_RSA
-#define ENCLAVE_FILENAME "Wolfssl_Enclave.signed.so"
+#define ENCLAVE_FILENAME "Server_Enclave.signed.so"
 
 enum BenchmarkBounds {
 	/* these numbers are lower then default wolfSSL one to collect benchmark values faster for GUI */

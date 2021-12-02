@@ -2,7 +2,7 @@
 #include <stdarg.h>
 #include <stdio.h>      /* vsnprintf */
 
-#include "Wolfssl_Enclave_t.h"
+#include "Server_Enclave_t.h"
 
 #include "sgx_trts.h"
 

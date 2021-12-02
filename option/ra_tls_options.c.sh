@@ -22,7 +22,7 @@ fi
 SPID_BYTE_ARRAY=$(echo $SPID | python -c 'import sys ; s = sys.stdin.readline().strip(); print("".join(["0x"+s[2*i:2*i+2]+"," for i in range(len(s)/2)]))')
 
 cat <<HEREDOC
-#include "ra/ra-attester.h"
+#include "ra/attester/ra-attester.h"
 
 struct ra_tls_options my_ra_tls_options = {
     // SPID format is 32 hex-character string, e.g., 0123456789abcdef0123456789abcdef

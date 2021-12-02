@@ -1,3 +1,5 @@
+#include <curl/curl.h>
+
 struct buffer_and_size {
     char* data;
     size_t len;

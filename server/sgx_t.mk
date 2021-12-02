@@ -1,4 +1,4 @@
-######## Intel(R) SGX SDK Settings ########
+### Intel(R) SGX SDK Settings ###
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
 else ifeq ($(findstring -m32, $(CXXFLAGS)), -m32)
@@ -37,51 +37,6 @@ else
 	Service_Library_Name := sgx_tservice
 endif
 
-Crypto_Library_Name := sgx_tcrypto
-
-SGX_RA_TLS_ROOT="../ra"
-
-Wolfssl_C_Extra_Flags := -DSGX_SDK -DWOLFSSL_SGX -DWOLFSSL_SGX_ATTESTATION -DUSER_TIME -DWOLFSSL_CERT_EXT
-Wolfssl_Include_Paths := -I$(WOLFSSL_ROOT)/ \
-						 -I$(WOLFSSL_ROOT)/wolfcrypt/
-
-
-Wolfssl_Enclave_C_Files := trusted/Wolfssl_Enclave.c
-Wolfssl_Enclave_Include_Paths := -IInclude -Itrusted $(Wolfssl_Include_Paths)\
-								   -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc\
-								   -I$(SGX_SDK)/include/stlport \
-									 -I$(SGX_RA_TLS_ROOT)
-
-ifeq ($(HAVE_WOLFSSL_TEST), 1)
-	Wolfssl_Include_Paths += -I$(WOLFSSL_ROOT)/wolfcrypt/test/
-	Wolfssl_C_Extra_Flags += -DHAVE_WOLFSSL_TEST
-endif
-
-ifeq ($(HAVE_WOLFSSL_BENCHMARK), 1)
-	Wolfssl_Include_Paths += -I$(WOLFSSL_ROOT)/wolfcrypt/benchmark/
-	Wolfssl_C_Extra_Flags += -DHAVE_WOLFSSL_BENCHMARK
-endif
-
-
-Flags_Just_For_C := -Wno-implicit-function-declaration -std=c11
-Common_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpie -fstack-protector $(Wolfssl_Enclave_Include_Paths) -fno-builtin -fno-builtin-printf -I.
-Wolfssl_Enclave_C_Flags := $(Flags_Just_For_C) $(Common_C_Cpp_Flags) $(Wolfssl_C_Extra_Flags)
-
-Wolfssl_Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) \
-  -L$(SGX_RA_TLS_LIB) -lsgx_ra_tls_wolfssl \
-	-L$(SGX_WOLFSSL_LIB) -lwolfssl.sgx.static.lib \
-	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
-	-Wl,--start-group -lsgx_tstdc -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
-	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
-	-Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
-	-Wl,--defsym,__ImageBase=0 \
-	-Wl,--version-script=trusted/Wolfssl_Enclave.lds
-
-Wolfssl_Enclave_C_Objects := $(Wolfssl_Enclave_C_Files:.c=.o)
-
-
-
-
 ifeq ($(SGX_MODE), HW)
 ifneq ($(SGX_DEBUG), 1)
 ifneq ($(SGX_PRERELEASE), 1)
@@ -89,51 +44,89 @@ Build_Mode = HW_RELEASE
 endif
 endif
 endif
+### Intel(R) SGX SDK Settings ###
 
+### Project Settings ###
+SGX_RA_TLS_ATTESTER_DIR="../ra/attester"
+SGX_RA_TLS_CHALLENGER_DIR="../ra/challenger"
+SGX_RA_TLS_COMMON_DIR="../ra/common"
+SGX_RA_TLS_Include_Paths := -I$(SGX_RA_TLS_ATTESTER_DIR) \
+						 -I$(SGX_RA_TLS_CHALLENGER_DIR) \
+						 -I$(SGX_RA_TLS_COMMON_DIR)
 
-.PHONY: all run
+SGX_Include_Paths := -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc \
+						 -I$(SGX_SDK)/include/stlport
+Wolfssl_Include_Paths := -I$(DEPS_INCLUDE_DIR)
 
+Flags_Just_For_C := -Wno-implicit-function-declaration -std=c11
+Common_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpie -fstack-protector -fno-builtin -fno-builtin-printf -I.
+Wolfssl_C_Extra_Flags := -DSGX_SDK -DWOLFSSL_SGX -DWOLFSSL_SGX_ATTESTATION -DUSER_TIME -DWOLFSSL_CERT_EXT
+
+Server_Enclave_C_Flags := $(Flags_Just_For_C) $(Common_C_Cpp_Flags) $(Wolfssl_C_Extra_Flags) -Itrusted $(Wolfssl_Include_Paths) $(SGX_Include_Paths) $(SGX_RA_TLS_Include_Paths)
+
+Crypto_Library_Name := sgx_tcrypto
+
+Server_Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) \
+	-Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) \
+	-L$(SGX_RA_TLS_LIB) -lratls_attester_t \
+	-L$(SGX_WOLFSSL_LIB) -lwolfssl.sgx.static.lib \
+		-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
+	-Wl,--start-group -lsgx_tstdc -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
+	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
+	-Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
+	-Wl,--defsym,__ImageBase=0 \
+	-Wl,--version-script=trusted/Server_Enclave.lds
+### Project Settings ###
+
+### Phony targets ###
+.PHONY: all clean
+
+### Build all ###
 ifeq ($(Build_Mode), HW_RELEASE)
-all: Wolfssl_Enclave.so
-	@echo "Build enclave Wolfssl_Enclave.so [$(Build_Mode)|$(SGX_ARCH)] success!"
+all: Server_Enclave.so
+	@echo "Build enclave Server_Enclave.so [$(Build_Mode)|$(SGX_ARCH)] success!"
 	@echo
 	@echo "*********************************************************************************************************************************************************"
-	@echo "PLEASE NOTE: In this mode, please sign the Wolfssl_Enclave.so first using Two Step Sign mechanism before you run the app to launch and access the enclave."
+	@echo "PLEASE NOTE: In this mode, please sign the Server_Enclave.so first using Two Step Sign mechanism before you run the app to launch and access the enclave."
 	@echo "*********************************************************************************************************************************************************"
 	@echo
 else
-all: Wolfssl_Enclave.signed.so
+all: Server_Enclave.signed.so
 endif
 
-run: all
-ifneq ($(Build_Mode), HW_RELEASE)
-	@$(CURDIR)/app
-	@echo "RUN  =>  app [$(SGX_MODE)|$(SGX_ARCH), OK]"
-endif
+### Sources ###
+Server_Enclave_C_Files := trusted/Server_Enclave.c
+Server_Enclave_C_Objects := $(Server_Enclave_C_Files:.c=.o)
 
-
-######## Wolfssl_Enclave Objects ########
-
-trusted/Wolfssl_Enclave_t.c: $(SGX_EDGER8R) ./trusted/Wolfssl_Enclave.edl
-	@cd ./trusted && $(SGX_EDGER8R) --trusted ../trusted/Wolfssl_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_ROOT)
+### Edger8r related sourcs ###
+trusted/Server_Enclave_t.c: $(SGX_EDGER8R) ./trusted/Server_Enclave.edl
+	@echo Entering ./trusted and execute $(SGX_EDGER8R) --trusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
+	@cd ./trusted && $(SGX_EDGER8R) --trusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
 	@echo "GEN  =>  $@"
 
-trusted/Wolfssl_Enclave_t.o: ./trusted/Wolfssl_Enclave_t.c
-	@$(CC) $(Wolfssl_Enclave_C_Flags) -c $< -o $@
+trusted/Server_Enclave_t.o: ./trusted/Server_Enclave_t.c
+	@echo $(CC) $(Server_Enclave_C_Flags) -c $< -o $@
+	@$(CC) $(Server_Enclave_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
+### Edger8r related sourcs ###
 
 trusted/%.o: trusted/%.c
-	@echo $(CC) $(Wolfssl_Enclave_C_Flags) -c $< -o $@
-	@$(CC) $(Wolfssl_Enclave_C_Flags) -c $< -o $@
+	@echo $(CC) $(Server_Enclave_C_Flags) -c $< -o $@
+	@$(CC) $(Server_Enclave_C_Flags) -c $< -o $@
 	@echo "CC  <=  $<"
 
-Wolfssl_Enclave.so: trusted/Wolfssl_Enclave_t.o $(Wolfssl_Enclave_C_Objects)
-	@echo $(Wolfssl_Enclave_Link_Flags)@
-	@$(CXX) $^ -o $@ $(Wolfssl_Enclave_Link_Flags)
+### Enclave Image ###
+Server_Enclave.so: trusted/Server_Enclave_t.o $(Server_Enclave_C_Objects)
+	@echo $(Server_Enclave_Link_Flags)@
+	@$(CXX) $^ -o $@ $(Server_Enclave_Link_Flags)
 	@echo "LINK =>  $@"
 
-Wolfssl_Enclave.signed.so: Wolfssl_Enclave.so
-	@$(SGX_ENCLAVE_SIGNER) sign -key trusted/Wolfssl_Enclave_private.pem -enclave Wolfssl_Enclave.so -out $@ -config trusted/Wolfssl_Enclave.config.xml
+### Signing ###
+Server_Enclave.signed.so: Server_Enclave.so
+	@$(SGX_ENCLAVE_SIGNER) sign -key trusted/Server_Enclave_private.pem -enclave Server_Enclave.so -out $@ -config trusted/Server_Enclave.config.xml
 	@echo "SIGN =>  $@"
+### Sources ###
+
+### Clean command ###
 clean:
-	@rm -f Wolfssl_Enclave.* trusted/Wolfssl_Enclave_t.*  $(Wolfssl_Enclave_C_Objects)
+	@rm -f Server_Enclave.* trusted/Server_Enclave_t.*  $(Server_Enclave_C_Objects)
