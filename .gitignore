@@ -62,3 +62,7 @@ wolfssl-client-mutual
 # epid option
 ra_tls_options-ref.c
 ra_tls_options.c
+
+# any log files
+*LOG*
+*.log
