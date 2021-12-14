@@ -68,7 +68,7 @@ Crypto_Library_Name := sgx_tcrypto
 
 Server_Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) \
 	-Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) \
-	-L$(SGX_RA_TLS_LIB) -lratls_attester_t \
+	-L$(SGX_RA_TLS_LIB) -lratls_attester_t -lratls_common_t\
 	-L$(SGX_WOLFSSL_LIB) -lwolfssl.sgx.static.lib \
 		-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
 	-Wl,--start-group -lsgx_tstdc -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \

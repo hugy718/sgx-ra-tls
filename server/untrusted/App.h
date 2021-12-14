@@ -28,13 +28,6 @@
 
 #include "Server_Enclave_u.h"   /* contains untrusted wrapper functions used to call enclave functions*/
 
-#define BENCH_RSA
-#define ENCLAVE_FILENAME "Server_Enclave.signed.so"
-
-enum BenchmarkBounds {
-	/* these numbers are lower then default wolfSSL one to collect benchmark values faster for GUI */
-	numBlocks = 10, /* how many megs to test */
-	ntimes = 30 /* how many itteration to run RSA decrypt/encrypt */
-};
+#define SERVER_ENCLAVE_FILENAME "Server_Enclave.signed.so"
 
 #endif

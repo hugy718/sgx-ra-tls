@@ -73,7 +73,7 @@ endif
 
 ### Linking setting ###
 Server_App_Link_Flags := $(SGX_COMMON_CFLAGS) \
-	-L$(SGX_RA_TLS_LIB) -lratls_attester_u \
+	-L$(SGX_RA_TLS_LIB) -lratls_attester_u -lratls_common_u\
 	-L$(SGX_LIBRARY_PATH)	-l$(Urts_Library_Name) \
 	-L$(DEPS_LIBS_DIR) $(DEPS_LIBS_DIR)/libcurl-wolfssl.a $(DEPS_LIBS_DIR)/libwolfssl.a \
 	-lpthread -lz -lm
@@ -104,7 +104,8 @@ all: App
 endif
 
 ### Sources ###
-Server_App_C_Files := untrusted/App.c untrusted/client-tls.c untrusted/server-tls.c
+# Server_App_C_Files := untrusted/App.c untrusted/client-tls.c untrusted/server-tls.c
+Server_App_C_Files := untrusted/App.c untrusted/server-tls.c
 Server_App_C_Objects := $(Server_App_C_Files:.c=.o)
 
 ## Edger8r related sources ##

@@ -1,3 +1,6 @@
+#ifndef _RA_CHALLENGER_PRIVATE_H_
+#define _RA_CHALLENGER_PRIVATE_H_
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -57,3 +60,5 @@ int is_epid_ratls_cert
     const uint8_t* der_crt,
     uint32_t der_crt_len
 );
+
+#endif // _RA_CHALLENGER_PRIVATE_H_

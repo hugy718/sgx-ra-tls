@@ -37,3 +37,30 @@ void ra_tls_create_report(
 
     sgx_create_report(&target_info, &report_data, report);
 }
+
+extern struct ra_tls_options my_ra_tls_options;
+
+void enc_create_key_and_x509(WOLFSSL_CTX* ctx) {
+    uint8_t der_key[2048];
+    uint8_t der_cert[8 * 1024];
+    // uint32_t der_key_len = sizeof(der_key);
+    // uint32_t der_cert_len = sizeof(der_cert);
+    int der_key_len = 2048;
+    int der_cert_len = 8 * 1024;
+
+    // create_key_and_x509(&der_key, &der_key_len,
+    //                     &der_cert, &der_cert_len,
+    //                     &my_ra_tls_options);
+    create_key_and_x509(der_key, &der_key_len,
+                        der_cert, &der_cert_len,
+                        &my_ra_tls_options);
+
+    int ret;
+    ret = wolfSSL_CTX_use_certificate_buffer(ctx, der_cert, der_cert_len,
+                                             SSL_FILETYPE_ASN1);
+    assert(ret == SSL_SUCCESS);
+
+    wolfSSL_CTX_use_PrivateKey_buffer(ctx, der_key, der_key_len,
+                                      SSL_FILETYPE_ASN1);
+    assert(ret == SSL_SUCCESS);
+}

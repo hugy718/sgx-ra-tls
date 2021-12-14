@@ -3,9 +3,11 @@ enclave {
     include "ra.h"
     include "ra-attester.h"
     include "sgx_report.h"
+    
+    include "wolfssl/ssl.h"
 
     trusted {
-        public void dummy(void);
+        public void enc_create_key_and_x509([user_check]WOLFSSL_CTX* ctx);
     };
 
     untrusted {

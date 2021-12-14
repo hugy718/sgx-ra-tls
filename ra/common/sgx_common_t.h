@@ -1,5 +1,5 @@
-// #ifndef _BENCHMARK_ENCLAVE_H_
-// #define _BENCHMARK_ENCLAVE_H_
+// #ifndef _RA_TLS_SGX_COMMON_H_
+// #define _RA_TLS_SGX_COMMON_H_
 
 // #if defined(__cplusplus)
 // extern "C" {
@@ -13,4 +13,4 @@
 // }
 // #endif
 
-// #endif /* !_BENCHMARK_ENCLAVE_H_ */
+// #endif /* !_RA_TLS_SGX_COMMON_H_*/

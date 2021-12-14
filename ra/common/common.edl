@@ -1,0 +1,34 @@
+enclave {
+  include "wolfssl/ssl.h"
+  include "wolfssl/wolfcrypt/settings.h"
+  include "wolfssl/wolfcrypt/types.h"
+
+  trusted {
+		public int enc_wolfSSL_Init(void);
+		public void enc_wolfSSL_Debugging_ON(void);
+		public void enc_wolfSSL_Debugging_OFF(void);
+		public WOLFSSL_CTX* enc_wolfSSL_CTX_new([user_check] WOLFSSL_METHOD* method);
+    public WOLFSSL* enc_wolfSSL_new([user_check] WOLFSSL_CTX* ctx);
+		public int enc_wolfSSL_set_fd([user_check]WOLFSSL* ssl, int fd);
+		public int enc_wolfSSL_connect([user_check]WOLFSSL* ssl);
+		public int enc_wolfSSL_write([user_check]WOLFSSL* ssl,
+									 [in, size=sz] const void* in,
+									 int sz);
+		public int enc_wolfSSL_get_error([user_check]WOLFSSL* ssl,
+										 int ret);
+		public int enc_wolfSSL_read([user_check]WOLFSSL* ssl,
+									[out, size=sz]void* out,
+									int sz);
+		public void enc_wolfSSL_free([user_check]WOLFSSL* ssl);
+		public void enc_wolfSSL_CTX_free([user_check]WOLFSSL_CTX* ctx);
+		public int enc_wolfSSL_Cleanup(void);
+  };
+
+  untrusted {
+    void ocall_print_string([in, string] const char* str);
+    void ocall_current_time([out] double* time);
+    void ocall_low_res_time([out] int* time);
+    size_t ocall_recv(int sockfd, [out, size=len] void *buf, size_t len, int flags) propagate_errno;
+    size_t ocall_send(int sockfd, [in, size=len] const void *buf, size_t len, int flags) propagate_errno;
+  };
+};
