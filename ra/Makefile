@@ -137,7 +137,31 @@ $(PROJECT_ROOT)/ra/common/wolfssl-ra_u.o: $(PROJECT_ROOT)/ra/common/wolfssl-ra.c
 	@$(CC) $(UCFLAGS) -c $< -o $@
 	@echo "CC   <=  $<"
 
-## trusted challenger lib (a subset of challenger lib) ##
+## trusted challenger lib ## 
+## (additionally needs the ecall implementation of set verify) ##
+Challenger_t_C_Files := $(PROJECT_ROOT)/ra/challenger/wolfssl-ra-challenger.c \
+	$(PROJECT_ROOT)/ra/challenger/sgxsdk-wolfssl-ra-challenger_t.c \
+	$(PROJECT_ROOT)/ra/challenger/ra-challenger.c \
+	$(PROJECT_ROOT)/ra/challenger/ias_sign_ca_cert.c \
+	$(PROJECT_ROOT)/ra/common/wolfssl-ra.c
+
+Challenger_t_C_Objects := $(Challenger_t_C_Files:.c=_t.o)
+$(PROJECT_ROOT)/ra/challenger/sgxsdk-wolfssl-ra-challenger_t_t.o: $(PROJECT_ROOT)/ra/challenger/sgxsdk-wolfssl-ra-challenger_t.c
+	@echo $(CC) $(TCFLAGS) -c $< -o $@
+	@$(CC) $(TCFLAGS) -c $< -o $@
+	@echo "CC   <=  $<"
+$(PROJECT_ROOT)/ra/challenger/wolfssl-ra-challenger_t.o: $(PROJECT_ROOT)/ra/challenger/wolfssl-ra-challenger.c
+	@echo $(CC) $(TCFLAGS) -c $< -o $@
+	@$(CC) $(TCFLAGS) -c $< -o $@
+	@echo "CC   <=  $<"
+$(PROJECT_ROOT)/ra/challenger/ra-challenger_t.o: $(PROJECT_ROOT)/ra/challenger/ra-challenger.c
+	@echo $(CC) $(TCFLAGS) -c $< -o $@
+	@$(CC) $(TCFLAGS) -c $< -o $@
+	@echo "CC   <=  $<"
+$(PROJECT_ROOT)/ra/challenger/ias_sign_ca_cert_t.o: $(PROJECT_ROOT)/ra/challenger/ias_sign_ca_cert.c
+	@echo $(CC) $(TCFLAGS) -c $< -o $@
+	@$(CC) $(TCFLAGS) -c $< -o $@
+	@echo "CC   <=  $<"
 
 ## challenger lib ##
 Challenger_C_Files := $(PROJECT_ROOT)/ra/challenger/wolfssl-ra-challenger.c \
@@ -166,9 +190,10 @@ $(PROJECT_ROOT)/ra/common/wolfssl-ra.o: $(PROJECT_ROOT)/ra/common/wolfssl-ra.c
 
 .PHONY: all clean mrproper
 
-all: libratls_attester_t.a libratls_attester_u.a libratls_challenger.a libratls_common_t.a libratls_common_u.a
+all: libratls_attester_t.a libratls_attester_u.a libratls_challenger_t.a libratls_challenger.a libratls_common_t.a libratls_common_u.a
 
 ### Edger8r related sources ###
+## attester related sources ##
 attester/attester_t.c attester/attester_t.h attester/attester_u.c attester/attester_u.h : attester/attester.edl
 	$(SGX_EDGER8R) $^ --search-path $(SGX_SDK)/include \
 		--untrusted-dir attester/ --trusted-dir attester/
@@ -183,6 +208,19 @@ attester/attester_t.o: attester/attester_t.c
 	@$(CC) $(TCFLAGS) -c $< -o $@
 	@echo "CC   <=  $<"
 
+## challenger related sources ##
+challenger/challenger_t.c challenger/challenger_t.h: challenger/challenger.edl
+	@echo $(SGX_EDGER8R) $^ --search-path $(SGX_SDK)/include \
+		--untrusted-dir challenger/ --trusted-dir challenger/
+	$(SGX_EDGER8R) $^ --search-path $(SGX_SDK)/include \
+		--untrusted-dir challenger/ --trusted-dir challenger/
+
+challenger/challenger_t.o: challenger/challenger_t.c
+	@echo $(CC) $(TCFLAGS) -c $< -o $@
+	@$(CC) $(TCFLAGS) -c $< -o $@
+	@echo "CC   <=  $<"
+
+## common sources ##
 common/common_t.c common/common_t.h common/common_u.c common/common_u.h: common/common.edl
 	@echo $(SGX_EDGER8R) $^ --search-path $(SGX_SDK)/include\
 		--untrusted-dir common/ --trusted-dir common/
@@ -205,9 +243,12 @@ libratls_attester_u.a: attester/attester_u.o $(Attester_u_C_Objects)
 	ar rcs $@ $(Attester_u_C_Objects)
 	@echo "LINK =>  $@"
 
-
 libratls_attester_t.a: attester/attester_t.o $(Attester_t_C_Objects)
 	ar rcs $@ $(Attester_t_C_Objects)
+	@echo "LINK =>  $@"
+
+libratls_challenger_t.a: challenger/challenger_t.o $(Challenger_t_C_Objects)
+	ar rcs $@ $(Challenger_t_C_Objects)
 	@echo "LINK =>  $@"
 
 libratls_challenger.a : $(Challenger_C_Objects)
@@ -231,6 +272,7 @@ clean:
 	$(RM) common/*.o
 
 mrproper: clean
-	@rm -f attester/attester_t.c attester/attester_t.h attester/attester_u.c attester/attester_u.h 
+	@rm -f attester/attester_t.c attester/attester_t.h attester/attester_u.c attester/attester_u.h
+	@rm -f challenger/challenger_t.c challenger/challenger_t.h
 	@rm -f common/common_t.c common/common_t.h common/common_u.c common/common_u.h
 ### Clean commands ###

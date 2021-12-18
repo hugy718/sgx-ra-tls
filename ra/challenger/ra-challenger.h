@@ -23,6 +23,7 @@ void get_quote_from_cert
     sgx_quote_t* q
 );
 
+// used in trusted and untrusted
 /**
  * Verify SGX-related X.509 extensions.
  * @return 0 if verification succeeds, 1 otherwise.

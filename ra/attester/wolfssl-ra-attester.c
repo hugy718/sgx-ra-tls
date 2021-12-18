@@ -111,20 +111,6 @@ wolfssl_create_key_and_x509
                   &attestation_report);
 }
 
-#ifdef WOLFSSL_SGX
-time_t XTIME(time_t* tloc) {
-    time_t x = 1512498557; /* Dec 5, 2017, 10:29 PDT */
-    if (tloc) *tloc = x;
-    return x;
-}
-
-time_t mktime(struct tm* tm) {
-    (void) tm;
-    assert(0);
-    return (time_t) 0;
-}
-#endif
-
 /**
  * @param der_key_len On the way in, this is the max size for the der_key parameter. On the way out, this is the actual size for der_key.
  * @param der_cert_len On the way in, this is the max size for the der_cert parameter. On the way out, this is the actual size for der_cert.

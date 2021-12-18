@@ -17,7 +17,22 @@
 
 #if SGX_SDK
 /* SGX SDK does not have this. */
-void *memmem(const void *h0, size_t k, const void *n0, size_t l);
+// an adapted implementation from SGX-Tor.
+// ref: https://github.com/kaist-ina/SGX-Tor/blob/master/SGX-Tor_WIN/TorRealOriginal/compat.c retrieved on 18/12/2021 
+void *memmem(const void *_haystack, size_t hlen, 
+  const void *_needle, size_t nlen) {
+  const char *haystack = (const char*)_haystack;
+  const char *needle = (const char*)_needle;
+  if (nlen > hlen) return NULL;
+  char first = *(const char*)needle;
+  const char *p = haystack;
+  const char *last_possible_start = haystack + hlen - nlen;
+  while ((p = memchr(p, first, last_possible_start + 1 - p))) {
+    if (!memcmp(p, needle, nlen)) return (void*) p;
+    p++;
+  }
+  return NULL;
+}
 #endif
 
 #include "ra-challenger_private.h"
@@ -31,17 +46,18 @@ const uint8_t ias_leaf_cert_oid[]        = OID(0x04);
 const uint8_t ias_report_signature_oid[] = OID(0x05);
 
 const uint8_t quote_oid[]          = OID(0x06);
-const uint8_t pck_crt_oid[]        = OID(0x07);
-const uint8_t pck_sign_chain_oid[] = OID(0x08);
-const uint8_t tcb_info_oid[]       = OID(0x09);
-const uint8_t tcb_sign_chain_oid[] = OID(0x0a);
+// const uint8_t pck_crt_oid[]        = OID(0x07);
+// const uint8_t pck_sign_chain_oid[] = OID(0x08);
+// const uint8_t tcb_info_oid[]       = OID(0x09);
+// const uint8_t tcb_sign_chain_oid[] = OID(0x0a);
 
-const uint8_t qe_identity_oid[]    = OID(0x0b);
-const uint8_t root_ca_crl_oid[]    = OID(0x0c);
-const uint8_t pck_crl_oid[]        = OID(0x0d);
+// const uint8_t qe_identity_oid[]    = OID(0x0b);
+// const uint8_t root_ca_crl_oid[]    = OID(0x0c);
+// const uint8_t pck_crl_oid[]        = OID(0x0d);
 
 const size_t ias_oid_len = sizeof(ias_response_body_oid);
 
+// only untrusted
 void get_quote_from_extension
 (
     const uint8_t* exts,
@@ -68,6 +84,7 @@ void get_quote_from_extension
     memcpy(q, report, sizeof(*q));
 }
 
+// used by both trusted and untrusted
 /**
  * @return Returns -1 if OID not found. Otherwise, returns 1;
  */
@@ -104,6 +121,7 @@ int find_oid
     return 1;
 }
 
+// used by both trusted and untrusted
 /**
  * @return Returns -1 if OID was not found. Otherwise, returns 1;
  */
@@ -132,6 +150,7 @@ int extract_x509_extension
     return 1;
 }
 
+// used by both trusted and untrusted
 /**
  * Extract all extensions.
  */
@@ -167,49 +186,7 @@ void extract_x509_extensions
                            sizeof(attn_report->ias_report_signature));
 }
 
-// /**
-//  * Extract ECDSA related extensions from X509.
-//  */
-// void ecdsa_extract_x509_extensions
-// (
-//     uint8_t* ext,
-//     int ext_len,
-//     ecdsa_attestation_evidence_t* evidence
-// )
-// {
-//     extract_x509_extension(ext, ext_len, quote_oid, ias_oid_len,
-//                            evidence->quote, &evidence->quote_len,
-//                            sizeof(evidence->quote));
-
-//     extract_x509_extension(ext, ext_len, pck_crt_oid, ias_oid_len,
-//                            evidence->pck_crt, &evidence->pck_crt_len,
-//                            sizeof(evidence->pck_crt));
-
-//     extract_x509_extension(ext, ext_len, pck_sign_chain_oid, ias_oid_len,
-//                            evidence->pck_sign_chain, &evidence->pck_sign_chain_len,
-//                            sizeof(evidence->pck_sign_chain));
-
-//     extract_x509_extension(ext, ext_len, tcb_info_oid, ias_oid_len,
-//                            evidence->tcb_info, &evidence->tcb_info_len,
-//                            sizeof(evidence->tcb_info));
-    
-//     extract_x509_extension(ext, ext_len, tcb_sign_chain_oid, ias_oid_len,
-//                            evidence->tcb_sign_chain, &evidence->tcb_sign_chain_len,
-//                            sizeof(evidence->tcb_sign_chain));
-
-//     extract_x509_extension(ext, ext_len, qe_identity_oid, ias_oid_len,
-//                            evidence->qe_identity, &evidence->qe_identity_len,
-//                            sizeof(evidence->qe_identity));
-
-//     extract_x509_extension(ext, ext_len, root_ca_crl_oid, ias_oid_len,
-//                            evidence->root_ca_crl, &evidence->root_ca_crl_len,
-//                            sizeof(evidence->root_ca_crl));
-
-//     extract_x509_extension(ext, ext_len, pck_crl_oid, ias_oid_len,
-//                            evidence->pck_crl, &evidence->pck_crl_len,
-//                            sizeof(evidence->pck_crl));
-// }
-
+// used by both trusted and untrusted
 /**
  * @return 1 if it is an EPID-based attestation RA-TLS
  * certificate. Otherwise, 0.
@@ -239,69 +216,4 @@ int is_epid_ratls_cert
     // Avoid compiler error: control reaches end of non-void function
     // [-Werror=return-type]
     return -1;
-}
-
-/**
- * Pretty-print information of EPID-based RA-TLS certificate to file descriptor.
- */
-static
-void dprintf_epid_ratls_cert
-(
-    int fd,
-    uint8_t* der_crt,
-    uint32_t der_crt_len
-)
-{
-    attestation_verification_report_t report;
-    extract_x509_extensions(der_crt, der_crt_len, &report);
-    dprintf(fd, "\nIntel Attestation Service Report\n");
-    dprintf(fd, "%.*s\n", report.ias_report_len, report.ias_report);
-}
-
-// /**
-//  * Pretty-print information of ECDSA-based RA-TLS certificate to file descriptor.
-//  */
-// static
-// void dprintf_ecdsa_ratls_cert
-// (
-//     int fd,
-//     uint8_t* der_crt,
-//     uint32_t der_crt_len
-// )
-// {
-//     ecdsa_attestation_evidence_t evidence;
-//     ecdsa_extract_x509_extensions(der_crt, der_crt_len, &evidence);
-
-//     dprintf(fd, "\nTCB info: ");
-//     dprintf(fd, "%.*s\n", evidence.tcb_info_len, evidence.tcb_info);
-//     dprintf(fd, "\nPCK Certificate:\n");
-//     dprintf(fd, "%.*s\n", evidence.pck_crt_len, evidence.pck_crt);
-// }
-
-void dprintf_ratls_cert
-(
-    int fd,
-    uint8_t* der_crt,
-    uint32_t der_crt_len
-)
-{
-    if (is_epid_ratls_cert(der_crt, der_crt_len)) {
-        dprintf_epid_ratls_cert(fd, der_crt, der_crt_len);
-    } else {
-        // dprintf_ecdsa_ratls_cert(fd, der_crt, der_crt_len);
-        dprintf(fd, "Not Using EPID RA");
-        return;
-    }
-
-    sgx_quote_t quote;
-    get_quote_from_cert(der_crt, der_crt_len, &quote);
-    sgx_report_body_t* body = &quote.report_body;
-
-    dprintf(fd, "MRENCLAVE = ");
-    for (int i=0; i < SGX_HASH_SIZE; ++i) dprintf(fd, "%02x", body->mr_enclave.m[i]);
-    dprintf(fd, "\n");
-    
-    dprintf(fd, "MRSIGNER  = ");
-    for (int i=0; i < SGX_HASH_SIZE; ++i) dprintf(fd, "%02x", body->mr_signer.m[i]);
-    dprintf(fd, "\n");
 }

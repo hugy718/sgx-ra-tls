@@ -42,27 +42,8 @@
 #include <sgx_quote.h>
 
 #include "ra/common/ra.h"
-// #ifdef SGX_RATLS_MUTUAL
-// #include "ra/ra-attester.h"
-// #endif
 #include "ra/challenger/ra-challenger.h"
-
-static
-int cert_verify_callback(int preverify, WOLFSSL_X509_STORE_CTX* store) {
-
-    (void) preverify;
-
-    int ret = verify_sgx_cert_extensions(store->certs->buffer,
-                                         store->certs->length);
-
-    fprintf(stderr, "Verifying SGX certificate extensions ... %s\n",
-            ret == 0 ? "Success" : "Failure");
-    return !ret;
-}
-
-// #ifdef SGX_RATLS_MUTUAL
-// extern struct ra_tls_options my_ra_tls_options;
-// #endif
+#include "ra/challenger/wolfssl-ra-challenger.h"
 
 int main(int argc, char** argv)
 {
@@ -81,8 +62,6 @@ int main(int argc, char** argv)
     /* Initialize wolfSSL */
     wolfSSL_Init();
 
-
-
     /* Create a socket that uses an internet IPv4 address,
      * Sets the socket to be stream based (TCP),
      * 0 means choose the default protocol. */
@@ -91,27 +70,12 @@ int main(int argc, char** argv)
         return -1;
     }
 
-
-
     /* Create and initialize WOLFSSL_CTX */
     if ((ctx = wolfSSL_CTX_new(wolfTLSv1_2_client_method())) == NULL) {
         fprintf(stderr, "ERROR: failed to create WOLFSSL_CTX\n");
         return -1;
     }
 
-// #ifdef SGX_RATLS_MUTUAL
-//     uint8_t key[2048]; uint8_t crt[8192];
-//     int key_len = sizeof(key);
-//     int crt_len = sizeof(crt);
-
-//     create_key_and_x509(key, &key_len, crt, &crt_len, &my_ra_tls_options);
-//     int ret = wolfSSL_CTX_use_PrivateKey_buffer(ctx, key, key_len, SSL_FILETYPE_ASN1);
-//     assert(SSL_SUCCESS == ret);
-
-//     ret = wolfSSL_CTX_use_certificate_buffer(ctx, crt, crt_len, SSL_FILETYPE_ASN1);
-//     assert(SSL_SUCCESS == ret);
-// #endif
-    
     /* Initialize the server address struct with zeros */
     memset(&servAddr, 0, sizeof(servAddr));
 
@@ -126,8 +90,6 @@ int main(int argc, char** argv)
         fprintf(stderr, "ERROR: invalid address\n");
         return -1;
     }
-
-
 
     /* Connect to the server */
     if (connect(sockfd, (struct sockaddr*) &servAddr, sizeof(servAddr))
@@ -191,8 +153,6 @@ int main(int argc, char** argv)
 
     /* Print to stdout any data the server sends */
     printf("Server:\n%s\n", buff);
-
-
 
     /* Cleanup and return */
     wolfSSL_free(ssl);      /* Free the wolfSSL object                  */

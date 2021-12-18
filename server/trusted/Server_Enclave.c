@@ -6,11 +6,6 @@
 
 #include "sgx_trts.h"
 
-WOLFSSL_METHOD* enc_wolfTLSv1_2_client_method(void)
-{
-    return wolfTLSv1_2_client_method();
-}
-
 WOLFSSL_METHOD* enc_wolfTLSv1_2_server_method(void)
 {
     return wolfTLSv1_2_server_method();
