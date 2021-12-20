@@ -56,33 +56,33 @@ SGX_RA_TLS_Include_Paths := -I$(SGX_RA_TLS_ATTESTER_DIR) \
 Common_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes -I.
 # This flag needed for some wolfssl header
 Wolfssl_C_Extra_Flags := -DWOLFSSL_SGX 
-Tclient_App_C_Flags := $(Common_C_Cpp_Flags) $(Wolfssl_C_Extra_Flags) -Iuntrusted -I$(SGX_SDK)/include $(SGX_RA_TLS_Include_Paths) -I$(DEPS_INCLUDE_DIR)
+Server_App_C_Flags := $(Common_C_Cpp_Flags) $(Wolfssl_C_Extra_Flags) -Iuntrusted -I$(SGX_SDK)/include $(SGX_RA_TLS_Include_Paths) -I$(DEPS_INCLUDE_DIR)
 
 # Three configuration modes - Debug, prerelease, release
 #   Debug - Macro DEBUG enabled.
 #   Prerelease - Macro NDEBUG and EDEBUG enabled.
 #   Release - Macro NDEBUG enabled.
 ifeq ($(SGX_DEBUG), 1)
-        Tclient_App_C_Flags += -DDEBUG -UNDEBUG -UEDEBUG
+        Server_App_C_Flags += -DDEBUG -UNDEBUG -UEDEBUG
 else ifeq ($(SGX_PRERELEASE), 1)
-        Tclient_App_C_Flags += -DNDEBUG -DEDEBUG -UDEBUG
+        Server_App_C_Flags += -DNDEBUG -DEDEBUG -UDEBUG
 else
-        Tclient_App_C_Flags += -DNDEBUG -UEDEBUG -UDEBUG
+        Server_App_C_Flags += -DNDEBUG -UEDEBUG -UDEBUG
 endif
 ### Project Settings ###
 
 ### Linking setting ###
-Tclient_App_Link_Flags := $(SGX_COMMON_CFLAGS) \
-	-L$(SGX_RA_TLS_LIB) -lratls_common_u\
+Server_App_Link_Flags := $(SGX_COMMON_CFLAGS) \
+	-L$(SGX_RA_TLS_LIB) -lratls_attester_u -lratls_common_u\
 	-L$(SGX_LIBRARY_PATH)	-l$(Urts_Library_Name) \
 	-L$(DEPS_LIBS_DIR) $(DEPS_LIBS_DIR)/libcurl-wolfssl.a $(DEPS_LIBS_DIR)/libwolfssl.a \
 	-lpthread -lz -lm
 
 ## Add sgx_uae_service library to link ##
 ifneq ($(SGX_MODE), HW)
-	Tclient_App_Link_Flags += -lsgx_uae_service_sim
+	Server_App_Link_Flags += -lsgx_uae_service_sim
 else
-	Tclient_App_Link_Flags += -lsgx_uae_service
+	Server_App_Link_Flags += -lsgx_uae_service
 endif
 ### Linking setting ###
 
@@ -95,7 +95,7 @@ all: App
 	@echo "Build App [$(Build_Mode)|$(SGX_ARCH)] success!"
 	@echo
 	@echo "*********************************************************************************************************************************************************"
-	@echo "PLEASE NOTE: In this mode, please sign the Tclient_Enclave.so first using Two Step Sign mechanism before you run the app to launch and access the enclave."
+	@echo "PLEASE NOTE: In this mode, please sign the Server_Enclave.so first using Two Step Sign mechanism before you run the app to launch and access the enclave."
 	@echo "*********************************************************************************************************************************************************"
 	@echo
 
@@ -104,33 +104,33 @@ all: App
 endif
 
 ### Sources ###
-# Tclient_App_C_Files := untrusted/App.c untrusted/client-tls.c untrusted/server-tls.c
-Tclient_App_C_Files := untrusted/tclient.c
-Tclient_App_C_Objects := $(Tclient_App_C_Files:.c=.o)
+# Server_App_C_Files := untrusted/App.c untrusted/client-tls.c untrusted/server-tls.c
+Server_App_C_Files := untrusted/App.c untrusted/server-tls.c
+Server_App_C_Objects := $(Server_App_C_Files:.c=.o)
 
 ## Edger8r related sources ##
-untrusted/Tclient_Enclave_u.c: $(SGX_EDGER8R) trusted/Tclient_Enclave.edl
-	@cd ./untrusted && $(SGX_EDGER8R) --untrusted ../trusted/Tclient_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
+untrusted/Server_Enclave_u.c: $(SGX_EDGER8R) trusted/Server_Enclave.edl
+	@cd ./untrusted && $(SGX_EDGER8R) --untrusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
 	@echo "GEN  =>  $@"
 
-untrusted/Tclient_Enclave_u.o: untrusted/Tclient_Enclave_u.c
-	@echo $(CC) $(Tclient_App_C_Flags) -c $< -o $@
-	@$(CC) $(Tclient_App_C_Flags) -c $< -o $@
+untrusted/Server_Enclave_u.o: untrusted/Server_Enclave_u.c
+	@echo $(CC) $(Server_App_C_Flags) -c $< -o $@
+	@$(CC) $(Server_App_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 ## Edger8r related sources ##
 
 untrusted/%.o: untrusted/%.c
-	@echo $(CC) $(Tclient_App_C_Flags) -c $< -o $@
-	@$(CC) $(Tclient_App_C_Flags) -c $< -o $@
+	@echo $(CC) $(Server_App_C_Flags) -c $< -o $@
+	@$(CC) $(Server_App_C_Flags) -c $< -o $@
 	@echo "CC  <=  $<"
 
 ## Build server app ##
-App: untrusted/Tclient_Enclave_u.o $(Tclient_App_C_Objects)
-	@echo $(CC) $(Tclient_App_Link_Flags) -c $< -o $@
-	@$(CC) $^ -o $@ $(Tclient_App_Link_Flags)
+App: untrusted/Server_Enclave_u.o $(Server_App_C_Objects)
+	@echo $(CC) $(Server_App_Link_Flags) -c $< -o $@
+	@$(CC) $^ -o $@ $(Server_App_Link_Flags)
 	@echo "LINK =>  $@"
 ### Sources ###
 
 ### Clean command ###
 clean:
-	@rm -f App $(Tclient_App_C_Objects) untrusted/Tclient_Enclave_u.* 
+	@rm -f App $(Server_App_C_Objects) untrusted/Server_Enclave_u.* 

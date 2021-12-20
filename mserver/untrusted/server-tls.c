@@ -112,6 +112,10 @@ int server_connect(sgx_enclave_id_t id)
     }
 #endif
 
+    // setup verify callback in enclave (only difference with server)
+    enc_wolfSSL_CTX_set_ratls_verify(id, ctx);
+    // setup verify callback in enclave (only difference with server)
+
     // prepare ra cert and add as extension
     sgxStatus = enc_create_key_and_x509(id, ctx);
     assert(sgxStatus == SGX_SUCCESS);

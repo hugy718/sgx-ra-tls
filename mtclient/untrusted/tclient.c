@@ -12,7 +12,7 @@
   #define DEBUG_VALUE 1
 #endif
 
-
+#include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -86,9 +86,15 @@ int main(int argc, char* argv[]) {
     printf("wolfSSL_CTX_new failure");
     return EXIT_FAILURE;
   }
-  // setup verify callback in enclave
+
+  // setup verify callback in enclave (only difference with tclient)
   enc_wolfSSL_CTX_set_ratls_verify(id, ctx);
-  // setup verify callback in enclave
+  // setup verify callback in enclave (only difference with tclient)
+
+  // prepare ra cert and add as extension
+  sgxStatus = enc_create_key_and_x509(id, ctx);
+  assert(sgxStatus == SGX_SUCCESS);
+  // prepare ra cert and add as extension
 
   // link socket to wolfssl ctx
   sgxStatus = enc_wolfSSL_new(id, &ssl, ctx);

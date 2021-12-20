@@ -73,7 +73,7 @@ endif
 
 ### Linking setting ###
 Tclient_App_Link_Flags := $(SGX_COMMON_CFLAGS) \
-	-L$(SGX_RA_TLS_LIB) -lratls_common_u\
+	-L$(SGX_RA_TLS_LIB) -lratls_attester_u -lratls_common_u\
 	-L$(SGX_LIBRARY_PATH)	-l$(Urts_Library_Name) \
 	-L$(DEPS_LIBS_DIR) $(DEPS_LIBS_DIR)/libcurl-wolfssl.a $(DEPS_LIBS_DIR)/libwolfssl.a \
 	-lpthread -lz -lm
