@@ -13,7 +13,7 @@ CFLAGS+=-DSGX_GROUP_OUT_OF_DATE
 ### Variable Settings ###
 
 ### Phony targets ###
-.PHONY: all deps ratls-libs clients server clean mrproper 
+.PHONY: all deps ratls_libs clients server clean mrproper 
 
 ### IAS EPID configuration ###
 option/ra_tls_options.c: option/ra_tls_options.c.sh

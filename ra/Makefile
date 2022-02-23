@@ -47,8 +47,7 @@ endif
 RATLS_LIB ?= ./
 PROJECT_ROOT ?= $(shell readlink -f ..)
 
-TSGX_Include_Paths := -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc \
-						 -I$(SGX_SDK)/include/stlport
+TSGX_Include_Paths := -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc
 USGX_Include_Paths := -I$(SGX_SDK)/include
 
 DEPS_Include_Paths := -I$(PROJECT_ROOT)/deps/local/include
@@ -209,7 +208,7 @@ attester/attester_t.o: attester/attester_t.c
 	@echo "CC   <=  $<"
 
 ## challenger related sources ##
-challenger/challenger_t.c challenger/challenger_t.h: challenger/challenger.edl
+challenger/challenger_t.c challenger/challenger_t.h challenger/challenger_u.c challenger/challenger_u.h: challenger/challenger.edl
 	@echo $(SGX_EDGER8R) $^ --search-path $(SGX_SDK)/include \
 		--untrusted-dir challenger/ --trusted-dir challenger/
 	$(SGX_EDGER8R) $^ --search-path $(SGX_SDK)/include \
@@ -273,6 +272,6 @@ clean:
 
 mrproper: clean
 	@rm -f attester/attester_t.c attester/attester_t.h attester/attester_u.c attester/attester_u.h
-	@rm -f challenger/challenger_t.c challenger/challenger_t.h
+	@rm -f challenger/challenger_t.c challenger/challenger_t.h challenger/challenger_u.c challenger/challenger_u.h
 	@rm -f common/common_t.c common/common_t.h common/common_u.c common/common_u.h
 ### Clean commands ###
