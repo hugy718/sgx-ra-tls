@@ -193,19 +193,9 @@ all: libratls_attester_t.a libratls_attester_u.a libratls_challenger_t.a libratl
 
 ### Edger8r related sources ###
 ## attester related sources ##
-attester/attester_t.c attester/attester_t.h attester/attester_u.c attester/attester_u.h : attester/attester.edl
+attester/attester_t.h attester/attester_u.h : attester/attester.edl
 	$(SGX_EDGER8R) $^ --search-path $(SGX_SDK)/include \
-		--untrusted-dir attester/ --trusted-dir attester/
-
-attester/attester_u.o: attester/attester_u.c
-	@echo $(CC) $(UCFLAGS) -c $< -o $@
-	@$(CC) $(UCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-
-attester/attester_t.o: attester/attester_t.c
-	@echo $(CC) $(TCFLAGS) -c $< -o $@
-	@$(CC) $(TCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
+		--untrusted-dir attester/ --trusted-dir attester/ --header-only
 
 ## challenger related sources ##
 challenger/challenger_t.c challenger/challenger_t.h challenger/challenger_u.c challenger/challenger_u.h: challenger/challenger.edl
@@ -214,39 +204,24 @@ challenger/challenger_t.c challenger/challenger_t.h challenger/challenger_u.c ch
 	$(SGX_EDGER8R) $^ --search-path $(SGX_SDK)/include \
 		--untrusted-dir challenger/ --trusted-dir challenger/
 
-challenger/challenger_t.o: challenger/challenger_t.c
-	@echo $(CC) $(TCFLAGS) -c $< -o $@
-	@$(CC) $(TCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-
 ## common sources ##
-common/common_t.c common/common_t.h common/common_u.c common/common_u.h: common/common.edl
+common/common_t.h common/common_u.h: common/common.edl
 	@echo $(SGX_EDGER8R) $^ --search-path $(SGX_SDK)/include\
-		--untrusted-dir common/ --trusted-dir common/
+		--untrusted-dir common/ --trusted-dir common/ --header-only
 	$(SGX_EDGER8R) $^ --search-path $(SGX_SDK)/include\
-		--untrusted-dir common/ --trusted-dir common/
-
-common/common_u.o: common/common_u.c
-	@echo $(CC) $(UCFLAGS) -c $< -o $@
-	@$(CC) $(UCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-
-common/common_t.o: common/common_t.c
-	@echo $(CC) $(TCFLAGS) -c $< -o $@
-	@$(CC) $(TCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
+		--untrusted-dir common/ --trusted-dir common/ --header-only
 ### Edger8r related sources ###
 
 ### Main targets ###
-libratls_attester_u.a: attester/attester_u.o $(Attester_u_C_Objects)
+libratls_attester_u.a: attester/attester_u.h $(Attester_u_C_Objects)
 	ar rcs $@ $(Attester_u_C_Objects)
 	@echo "LINK =>  $@"
 
-libratls_attester_t.a: attester/attester_t.o $(Attester_t_C_Objects)
+libratls_attester_t.a: attester/attester_t.h $(Attester_t_C_Objects)
 	ar rcs $@ $(Attester_t_C_Objects)
 	@echo "LINK =>  $@"
 
-libratls_challenger_t.a: challenger/challenger_t.o $(Challenger_t_C_Objects)
+libratls_challenger_t.a: challenger/challenger_t.h $(Challenger_t_C_Objects)
 	ar rcs $@ $(Challenger_t_C_Objects)
 	@echo "LINK =>  $@"
 
@@ -254,11 +229,11 @@ libratls_challenger.a : $(Challenger_C_Objects)
 	ar rcs $@ $(Challenger_C_Objects)
 	@echo "LINK =>  $@"
 
-libratls_common_u.a: common/common_u.o $(Common_u_C_Objects)
+libratls_common_u.a: common/common_u.h $(Common_u_C_Objects)
 	ar rcs $@ $(Common_u_C_Objects)
 	@echo "LINK => $@"
 
-libratls_common_t.a: common/common_t.o $(Common_t_C_Objects)
+libratls_common_t.a: common/common_t.h $(Common_t_C_Objects)
 	ar rcs $@ $(Common_t_C_Objects)
 	@echo "LINK => $@" 
 ### Main targets ###
