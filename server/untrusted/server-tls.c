@@ -61,7 +61,11 @@ int server_connect(sgx_enclave_id_t id)
 
 
     /* Initialize wolfSSL */
-    enc_wolfSSL_Init(id, &sgxStatus);
+    sgxStatus = enc_wolfSSL_Init(id, &ret);
+    if (sgxStatus != SGX_SUCCESS || ret != WOLFSSL_SUCCESS) {
+      printf("wolfSSL_Init failure\n");
+      return EXIT_FAILURE;
+    }
 
 #ifdef SGX_DEBUG
     enc_wolfSSL_Debugging_ON(id);

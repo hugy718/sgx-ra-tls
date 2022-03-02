@@ -74,7 +74,12 @@ int main(int argc, char* argv[]) {
   enc_wolfSSL_Debugging_OFF(id);
 #endif
 
-  enc_wolfSSL_Init(id, &sgxStatus);
+  /* Initialize wolfSSL */
+  sgxStatus = enc_wolfSSL_Init(id, &ret);
+  if (sgxStatus != SGX_SUCCESS || ret != WOLFSSL_SUCCESS) {
+    printf("wolfSSL_Init failure\n");
+    return EXIT_FAILURE;
+  }
   sgxStatus = enc_wolfTLSv1_2_client_method(id, &method);
   if(sgxStatus != SGX_SUCCESS || method == NULL) {
     printf("wolfTLSv1_2_client_method failure\n");
