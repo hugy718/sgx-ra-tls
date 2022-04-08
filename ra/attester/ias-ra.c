@@ -104,6 +104,9 @@ void parse_response_header
     uint32_t* signature_size
 )
 {
+#ifndef NDEBUG
+    printf("header content: %.*s\n", header_len, header);
+#endif // NDEBUG
     const char sig_tag[] = "X-IASReport-Signature: ";
     char* sig_begin = memmem((const char*) header,
                              header_len,
@@ -184,6 +187,9 @@ void obtain_attestation_verification_report
     struct curl_slist *request_headers =
         curl_slist_append(NULL, "Content-Type: application/json");
     request_headers = curl_slist_append(request_headers, buf);
+#ifndef NDEBUG
+    printf("ocp-apim content: %s\n", buf);
+#endif // NDEBUG
         
     const char json_template[] = "{\"isvEnclaveQuote\":\"%s\"}";
     unsigned char quote_base64[quote_size * 2];
@@ -192,8 +198,15 @@ void obtain_attestation_verification_report
 
     base64_encode((uint8_t*) quote, quote_size,
                   quote_base64, &quote_base64_len);
+#ifndef NDEBUG
+    printf("the quote: %s\n", quote);
+#endif // NDEBUG
 
     snprintf(json, sizeof(json), json_template, quote_base64);
+
+#ifndef NDEBUG
+    printf("the quote json sent: %s\n", json);
+#endif // NDEBUG
 
     CURL *curl = curl_easy_init();
     assert(curl != NULL);
