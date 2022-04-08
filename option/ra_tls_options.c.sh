@@ -2,24 +2,20 @@
 
 # set -x
 
-if [[ -z "$ECDSA_SUBSCRIPTION_KEY" ]] && ( [[ -z "$SPID" ]] || [[ -z "$EPID_SUBSCRIPTION_KEY" ]] ); then
-    echo "Either SPID and EPID_SUBSCRIPTION_KEY or ECDSA_SUBSCRIPTION_KEY is required!"
-    exit 1
-fi
-
 if ( [[ ! -z "$SPID" ]] && [[ -z "$EPID_SUBSCRIPTION_KEY" ]] ) || \
    ( [[ -z "$SPID" ]] && [[ ! -z "$EPID_SUBSCRIPTION_KEY" ]] ); then
-    echo "For EPID, Both SPID and EPID_SUBSCRIPTION_KEY must be set!"
+    echo "EPID requires both SPID and EPID_SUBSCRIPTION_KEY be set!"
     exit 1
 fi
 
 if ( [[ "$QUOTE_TYPE" != "SGX_LINKABLE_SIGNATURE" ]] ) && \
    ( [[ "$QUOTE_TYPE" != "SGX_UNLINKABLE_SIGNATURE" ]] ); then
+    echo $QUOTE_TYPE
     echo "QUOTE_TYPE must be one of SGX_UNLINKABLE_SIGNATURE or SGX_LINKABLE_SIGNATURE"
     exit 1
 fi
 
-SPID_BYTE_ARRAY=$(echo $SPID | python -c 'import sys ; s = sys.stdin.readline().strip(); print("".join(["0x"+s[2*i:2*i+2]+"," for i in range(len(s)/2)]))')
+SPID_BYTE_ARRAY=$(echo $SPID | python -c 'import sys ; s = sys.stdin.readline().strip(); print("".join(["0x"+s[2*i:2*i+2]+"," for i in range(len(s)//2)]))')
 
 cat <<HEREDOC
 #include "ra/attester/ra-attester.h"
