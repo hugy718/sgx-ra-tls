@@ -236,12 +236,33 @@ int verify_enclave_quote_status
     p_begin += strlen(json_string);
 
     const char* status_OK = "OK\"";
+    printf("------Attestation verfication report from IAS------\n");
     printf("%s\n", buf);
+    printf("------Attestation verfication report from IAS------\n");
     if (0 == strncmp(p_begin, status_OK, strlen(status_OK))) return 0;
     // temporary bypass for configuration needed
     const char* status_CONFIGURATION_NEEDED = "CONFIGURATION_NEEDED\"";
     if (0 == strncmp(p_begin, status_CONFIGURATION_NEEDED, 
-      strlen(status_CONFIGURATION_NEEDED))) return 0;
+      strlen(status_CONFIGURATION_NEEDED))) {
+      printf("WARNING: isvEnclaveQuoteStatus is CONFIGURATION_NEEDED\n");
+      return 0;
+    } 
+    // temporary bypass for sw hardening needed
+    const char* status_SW_HARDENING_NEEDED
+      = "SW_HARDENING_NEEDED\"";
+    if (0 == strncmp(p_begin, status_SW_HARDENING_NEEDED, 
+      strlen(status_SW_HARDENING_NEEDED))) {
+      printf("WARNING: isvEnclaveQuoteStatus is SW_HARDENING_NEEDED\n");
+      return 0;
+    } 
+    // temporary bypass for configuration and sw hardening needed
+    const char* status_CONFIGURATION_AND_SW_HARDENING_NEEDED
+      = "CONFIGURATION_AND_SW_HARDENING_NEEDED\"";
+    if (0 == strncmp(p_begin, status_CONFIGURATION_AND_SW_HARDENING_NEEDED, 
+      strlen(status_CONFIGURATION_AND_SW_HARDENING_NEEDED))) {
+      printf("WARNING: isvEnclaveQuoteStatus is CONFIGURATION_AND_SW_HARDENING_NEEDED\n");
+      return 0;
+    } 
 #ifdef SGX_GROUP_OUT_OF_DATE
     const char* status_outdated = "GROUP_OUT_OF_DATE\"";
     if (0 == strncmp(p_begin, status_outdated, strlen(status_outdated))) {
@@ -249,6 +270,7 @@ int verify_enclave_quote_status
         return 0;
     }
 #endif
+    // return 1 to indicate error for other statuses.
     return 1;
 }
 

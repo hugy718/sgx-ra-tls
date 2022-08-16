@@ -175,7 +175,7 @@ void obtain_attestation_verification_report
     int ret;
   
     char url[512];
-    ret = snprintf(url, sizeof(url), "https://%s/attestation/v3/report",
+    ret = snprintf(url, sizeof(url), "https://%s/attestation/v4/report",
                    opts->ias_server);
     assert(ret < (int) sizeof(url));
     
