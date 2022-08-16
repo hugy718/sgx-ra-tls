@@ -104,9 +104,6 @@ void parse_response_header
     uint32_t* signature_size
 )
 {
-#ifndef NDEBUG
-    printf("header content: %.*s\n", header_len, header);
-#endif // NDEBUG
     const char sig_tag[] = "X-IASReport-Signature: ";
     char* sig_begin = memmem((const char*) header,
                              header_len,
@@ -198,9 +195,6 @@ void obtain_attestation_verification_report
 
     base64_encode((uint8_t*) quote, quote_size,
                   quote_base64, &quote_base64_len);
-#ifndef NDEBUG
-    printf("the quote: %s\n", quote);
-#endif // NDEBUG
 
     snprintf(json, sizeof(json), json_template, quote_base64);
 

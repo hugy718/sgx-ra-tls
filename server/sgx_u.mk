@@ -116,27 +116,24 @@ Server_App_C_Objects := $(Server_App_C_Files:.c=.o)
 
 ## Edger8r related sources ##
 untrusted/Server_Enclave_u.c: $(SGX_EDGER8R) trusted/Server_Enclave.edl
-	@cd ./untrusted && $(SGX_EDGER8R) --untrusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
+	cd ./untrusted && $(SGX_EDGER8R) --untrusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
 	@echo "GEN  =>  $@"
 
 untrusted/Server_Enclave_u.o: untrusted/Server_Enclave_u.c
-	@echo $(CC) $(Server_App_C_Flags) -c $< -o $@
-	@$(CC) $(Server_App_C_Flags) -c $< -o $@
+	$(CC) $(Server_App_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 ## Edger8r related sources ##
 
 untrusted/%.o: untrusted/%.c
-	@echo $(CC) $(Server_App_C_Flags) -c $< -o $@
-	@$(CC) $(Server_App_C_Flags) -c $< -o $@
+	$(CC) $(Server_App_C_Flags) -c $< -o $@
 	@echo "CC  <=  $<"
 
 ## Build server app ##
 App: untrusted/Server_Enclave_u.o $(Server_App_C_Objects)
-	@echo $(CC) $(Server_App_Link_Flags) -c $< -o $@
-	@$(CC) $^ -o $@ $(Server_App_Link_Flags)
+	$(CC) $^ -o $@ $(Server_App_Link_Flags)
 	@echo "LINK =>  $@"
 ### Sources ###
 
 ### Clean command ###
 clean:
-	@rm -f App $(Server_App_C_Objects) untrusted/Server_Enclave_u.* 
+	rm -f App $(Server_App_C_Objects) untrusted/Server_Enclave_u.* 

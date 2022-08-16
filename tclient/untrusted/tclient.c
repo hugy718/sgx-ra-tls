@@ -25,7 +25,7 @@
 int main(int argc, char* argv[]) {
   // check input argument
   if (argc > 1) {
-    printf("Usage: no argument needed for now");
+    printf("Usage: no argument needed for now\n");
   }
 
 

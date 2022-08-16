@@ -105,33 +105,29 @@ Server_Enclave_C_Objects := $(Server_Enclave_C_Files:.c=.o)
 
 ### Edger8r related sourcs ###
 trusted/Server_Enclave_t.c: $(SGX_EDGER8R) ./trusted/Server_Enclave.edl
-	@echo Entering ./trusted and execute $(SGX_EDGER8R) --trusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
-	@cd ./trusted && $(SGX_EDGER8R) --trusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
+	cd ./trusted && $(SGX_EDGER8R) --trusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
 	@echo "GEN  =>  $@"
 
 trusted/Server_Enclave_t.o: ./trusted/Server_Enclave_t.c
-	@echo $(CC) $(Server_Enclave_C_Flags) -c $< -o $@
-	@$(CC) $(Server_Enclave_C_Flags) -c $< -o $@
+	$(CC) $(Server_Enclave_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 ### Edger8r related sourcs ###
 
 trusted/%.o: trusted/%.c
-	@echo $(CC) $(Server_Enclave_C_Flags) -c $< -o $@
-	@$(CC) $(Server_Enclave_C_Flags) -c $< -o $@
+	$(CC) $(Server_Enclave_C_Flags) -c $< -o $@
 	@echo "CC  <=  $<"
 
 ### Enclave Image ###
 Server_Enclave.so: trusted/Server_Enclave_t.o $(Server_Enclave_C_Objects)
-	@echo $(Server_Enclave_Link_Flags)@
-	@$(CXX) $^ -o $@ $(Server_Enclave_Link_Flags)
+	$(CXX) $^ -o $@ $(Server_Enclave_Link_Flags)
 	@echo "LINK =>  $@"
 
 ### Signing ###
 Server_Enclave.signed.so: Server_Enclave.so
-	@$(SGX_ENCLAVE_SIGNER) sign -key trusted/Server_Enclave_private.pem -enclave Server_Enclave.so -out $@ -config trusted/Server_Enclave.config.xml
+	$(SGX_ENCLAVE_SIGNER) sign -key trusted/Server_Enclave_private.pem -enclave Server_Enclave.so -out $@ -config trusted/Server_Enclave.config.xml
 	@echo "SIGN =>  $@"
 ### Sources ###
 
 ### Clean command ###
 clean:
-	@rm -f Server_Enclave.* trusted/Server_Enclave_t.*  $(Server_Enclave_C_Objects)
+	rm -f Server_Enclave.* trusted/Server_Enclave_t.*  $(Server_Enclave_C_Objects)

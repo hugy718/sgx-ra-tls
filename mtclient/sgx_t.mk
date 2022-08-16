@@ -105,33 +105,29 @@ Tclient_Enclave_C_Objects := $(Tclient_Enclave_C_Files:.c=.o)
 
 ### Edger8r related sourcs ###
 trusted/Tclient_Enclave_t.c: $(SGX_EDGER8R) ./trusted/Tclient_Enclave.edl
-	@echo Entering ./trusted and execute $(SGX_EDGER8R) --trusted ../trusted/Tclient_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
-	@cd ./trusted && $(SGX_EDGER8R) --trusted ../trusted/Tclient_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
+	cd ./trusted && $(SGX_EDGER8R) --trusted ../trusted/Tclient_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
 	@echo "GEN  =>  $@"
 
 trusted/Tclient_Enclave_t.o: ./trusted/Tclient_Enclave_t.c
-	@echo $(CC) $(Tclient_Enclave_C_Flags) -c $< -o $@
-	@$(CC) $(Tclient_Enclave_C_Flags) -c $< -o $@
+	$(CC) $(Tclient_Enclave_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 ### Edger8r related sourcs ###
 
 trusted/%.o: trusted/%.c
-	@echo $(CC) $(Tclient_Enclave_C_Flags) -c $< -o $@
-	@$(CC) $(Tclient_Enclave_C_Flags) -c $< -o $@
+	$(CC) $(Tclient_Enclave_C_Flags) -c $< -o $@
 	@echo "CC  <=  $<"
 
 ### Enclave Image ###
 Tclient_Enclave.so: trusted/Tclient_Enclave_t.o $(Tclient_Enclave_C_Objects)
-	@echo $(Tclient_Enclave_Link_Flags)@
-	@$(CXX) $^ -o $@ $(Tclient_Enclave_Link_Flags)
+	$(CXX) $^ -o $@ $(Tclient_Enclave_Link_Flags)
 	@echo "LINK =>  $@"
 
 ### Signing ###
 Tclient_Enclave.signed.so: Tclient_Enclave.so
-	@$(SGX_ENCLAVE_SIGNER) sign -key trusted/Tclient_Enclave_private.pem -enclave Tclient_Enclave.so -out $@ -config trusted/Tclient_Enclave.config.xml
+	$(SGX_ENCLAVE_SIGNER) sign -key trusted/Tclient_Enclave_private.pem -enclave Tclient_Enclave.so -out $@ -config trusted/Tclient_Enclave.config.xml
 	@echo "SIGN =>  $@"
 ### Sources ###
 
 ### Clean command ###
 clean:
-	@rm -f Tclient_Enclave.* trusted/Tclient_Enclave_t.*  $(Tclient_Enclave_C_Objects)
+	rm -f Tclient_Enclave.* trusted/Tclient_Enclave_t.*  $(Tclient_Enclave_C_Objects)
