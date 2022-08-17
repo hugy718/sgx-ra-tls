@@ -73,7 +73,7 @@ WOLFSSL_CLIENT_LIBS=-l:libratls_challenger.a -l:libwolfssl.a -lm
 wolfssl-client: client/client-tls.c ratls_libs
 	$(CC) -o $@ $(filter %.c, $^) $(CFLAGS) -Llib -Ldeps/local/lib $(WOLFSSL_CLIENT_LIBS)
 
-clients: wolfssl-client tclient mtclient
+clients: wolfssl-client mtclient
 ### Build client ###
 
 ### Build wolfssl Linux SGX support ###
@@ -87,11 +87,6 @@ enclave-app: deps/local/lib/libwolfssl.sgx.static.lib.a ratls_libs
 
 server: enclave-app mserver
 ### Build server ###
-
-### Build Tclient ###
-tclient: deps/local/lib/libwolfssl.sgx.static.lib.a ratls_libs
-	$(MAKE) -C tclient SGX_MODE=HW SGX_DEBUG=1 SGX_WOLFSSL_LIB=$(shell readlink -f deps/local/lib) SGX_SDK=$(SGX_SDK) DEPS_INCLUDE_DIR=$(shell readlink -f deps/local/include) SGX_RA_TLS_LIB=$(shell readlink -f lib/)
-### Build Tclient ###
 
 ### Build server with mutual attestation ###
 mserver: deps/local/lib/libwolfssl.sgx.static.lib.a ratls_libs
@@ -113,7 +108,6 @@ clean:
 	$(RM) option/*.o 
 	$(MAKE) -C ra clean
 	$(MAKE) -C server clean
-	$(MAKE) -C tclient clean
 	$(MAKE) -C mserver clean
 	$(MAKE) -C mtclient clean
 	$(RM) -rf lib
@@ -124,7 +118,6 @@ mrproper: clean
 	$(RM) -rf deps
 	$(RM) wolfssl-client
 	$(MAKE) -C server clean
-	$(MAKE) -C tclient clean
 	$(MAKE) -C mserver clean
 	$(MAKE) -C mtclient clean
 	$(RM) option/ra_tls_options.c

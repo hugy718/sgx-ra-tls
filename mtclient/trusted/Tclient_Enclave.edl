@@ -8,9 +8,17 @@ enclave {
   from "common.edl" import *;
 
     trusted {
-		public WOLFSSL_METHOD* enc_wolfTLSv1_2_client_method(void);
+      public int enc_sample_send(
+        [in, size=msg_len] const char* msg, size_t msg_len,
+        [in, size=addr_len] const char* server_addr, size_t addr_len,
+        uint16_t port);
+      public int enc_retrieve_sample_reply([out, size=sz]void* data, size_t sz);
+      public int enc_ssl_free();
     };
 
     untrusted {
+      int ocall_get_socket([in, size=addr_len] const char* server_addr,
+        size_t addr_len, uint16_t port);
+      void ocall_close_socket(int sockfd);
     };
 };
