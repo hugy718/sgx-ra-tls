@@ -36,6 +36,13 @@ void extract_x509_extensions
     attestation_verification_report_t* attn_report
 );
 
+void get_quote_from_report
+(
+    const uint8_t* report /* in */,
+    const int report_len  /* in */,
+    sgx_quote_t* quote
+);
+
 int epid_verify_sgx_cert_extensions
 (
     uint8_t* der_crt,

@@ -19,7 +19,7 @@
 extern unsigned char ias_sign_ca_cert_der[];
 extern unsigned int ias_sign_ca_cert_der_len;
 
-static void get_quote_from_report
+void get_quote_from_report
 (
     const uint8_t* report /* in */,
     const int report_len  /* in */,
