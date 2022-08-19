@@ -1,27 +1,16 @@
-/* Code to create an RA-TLS certificate with wolfSSL. */
-
-#define _GNU_SOURCE // for memmem()
+#include "tattester.h"
+#include "tattester_wolfssl.h"
 
 #include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 
-#include <sgx_uae_service.h>
-
-#include <wolfssl/options.h>
-#include <wolfssl/ssl.h>
-#include <wolfssl/wolfcrypt/asn.h>
-#include <wolfssl/wolfcrypt/asn_public.h>
-#include <wolfssl/wolfcrypt/coding.h>
-#include <wolfssl/wolfcrypt/rsa.h>
-#include <wolfssl/wolfcrypt/sha256.h>
+#include "wolfssl/wolfcrypt/asn_public.h"
+#include "wolfssl/wolfcrypt/rsa.h"
+#include "wolfssl/wolfcrypt/random.h"
 
 #include "ra.h"
-#include "wolfssl-ra.h"
-#include "ra-attester.h"
-// #include "ra-attester_private.h"
-#include "ra_private.h"
+#include "common/internal_util_wolfssl.h"
+
+extern struct ra_tls_options my_ra_tls_options;
 
 /**
  * Caller must allocate memory for certificate.
@@ -72,8 +61,7 @@ void generate_x509
     *der_crt_len = certSz;
 }
 
-static void
-wolfssl_create_key_and_x509
+static void wolfssl_create_key_and_x509
 (
     uint8_t* der_key,
     int* der_key_len,
@@ -129,30 +117,22 @@ void create_key_and_x509
                                 opts);
 }
 
-void create_key_and_x509_pem
-(
-    uint8_t* pem_key,  /* out */
-    int* pem_key_len,  /* in/out */
-    uint8_t* pem_cert, /* out */
-    int* pem_cert_len, /* in/out */
-    const struct ra_tls_options* opts
-)
-{
-    unsigned char der_key[16 * 1024] = {0, };
-    int der_key_len = sizeof(der_key);
-    unsigned char der_cert[16 * 1024] = {0, };
-    int der_cert_len = sizeof(der_cert_len);
-    int len;
+void wolfssl_create_key_and_x509_ctx(WOLFSSL_CTX* ctx) {
+    uint8_t der_key[2048];
+    uint8_t der_cert[8 * 1024];
+    int der_key_len = 2048;
+    int der_cert_len = 8 * 1024;
 
-    wolfssl_create_key_and_x509(der_key, &der_key_len,
-                                der_cert, &der_cert_len,
-                                opts);
+    create_key_and_x509(der_key, &der_key_len,
+                        der_cert, &der_cert_len,
+                        &my_ra_tls_options);
 
-    len = wc_DerToPem(der_key, der_key_len, pem_key, *pem_key_len, PRIVATEKEY_TYPE);
-    assert(len > 0);
-    *pem_key_len = len;
+    int ret;
+    ret = wolfSSL_CTX_use_certificate_buffer(ctx, der_cert, der_cert_len,
+                                             SSL_FILETYPE_ASN1);
+    assert(ret == SSL_SUCCESS);
 
-    len = wc_DerToPem(der_cert, der_cert_len, pem_cert, *pem_cert_len, CERT_TYPE);
-    assert(len > 0);
-    *pem_cert_len = len;
+    wolfSSL_CTX_use_PrivateKey_buffer(ctx, der_key, der_key_len,
+                                      SSL_FILETYPE_ASN1);
+    assert(ret == SSL_SUCCESS);
 }

@@ -1,54 +1,25 @@
-/**
- * wolfSSL-based implementation of the RA-TLS challenger API
- * (cf. ra-challenger.h).
- */
+#include "challenger_wolfssl.h"
 
 #include <assert.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <wolfssl/options.h>
-#include <wolfssl/ssl.h>
-#include <wolfssl/wolfcrypt/asn.h>
-#include <wolfssl/wolfcrypt/asn_public.h>
-#include <wolfssl/wolfcrypt/coding.h>
-#include <wolfssl/wolfcrypt/rsa.h>
-#include <wolfssl/wolfcrypt/sha256.h>
-#include <wolfssl/wolfcrypt/signature.h>
+#include "wolfssl/wolfcrypt/asn.h"
+#include "wolfssl/wolfcrypt/asn_public.h"
+#include "wolfssl/wolfcrypt/coding.h"
+#include "wolfssl/wolfcrypt/signature.h"
 
 #include "ra.h"
-#include "wolfssl-ra.h"
-#include "ra-challenger.h"
-#include "ra-challenger_private.h"
-#include <stdio.h>
+#include "challenger.h"
+#include "challenger_internal.h"
+#include "common/internal_util_wolfssl.h"
 
 extern unsigned char ias_sign_ca_cert_der[];
 extern unsigned int ias_sign_ca_cert_der_len;
 
-// only untrusted
-void get_quote_from_cert
-(
-    const uint8_t* der_crt,
-    uint32_t der_crt_len,
-    sgx_quote_t* q
-)
-{
-    DecodedCert crt;
-    int ret;
-
-    InitDecodedCert(&crt, (byte*) der_crt, der_crt_len, NULL);
-    InitSignatureCtx(&crt.sigCtx, NULL, INVALID_DEVID);
-    ret = ParseCertRelative(&crt, CERT_TYPE, NO_VERIFY, 0);
-    assert(ret == 0);
-    
-    get_quote_from_extension(crt.extensions, crt.extensionsSz, q);
-
-    FreeDecodedCert(&crt);
-}
-
-// used by both trusted and untrusted
-void get_quote_from_report
+static void get_quote_from_report
 (
     const uint8_t* report /* in */,
     const int report_len  /* in */,
@@ -81,7 +52,6 @@ void get_quote_from_report
     free(quote_bin);
 }
 
-// used by both trusted and untrusted
 static
 int verify_report_data_against_server_cert
 (
@@ -138,7 +108,6 @@ int verify_report_data_against_server_cert
     return ret;
 }
 
-// used by both trusted and untrusted
 static
 int verify_ias_report_signature
 (
@@ -184,7 +153,6 @@ int verify_ias_report_signature
     return ret;
 }
 
-// used by both trusted and untrusted
 static
 int verify_ias_certificate_chain(attestation_verification_report_t* attn_report) {
     WOLFSSL_CERT_MANAGER* cm;
@@ -209,11 +177,13 @@ int verify_ias_certificate_chain(attestation_verification_report_t* attn_report)
     return 0;
 }
 
-// used by both trusted and untrusted
 /**
  * Check if isvEnclaveQuoteStatus is "OK"
- * (cf. https://software.intel.com/sites/default/files/managed/7e/3b/ias-api-spec.pdf,
- * pg. 24).
+ * Now temporarily bypasses the following statuses
+ *  CONFIGURATION_NEEDED
+ *  SW_HARDENING_NEEDED
+ *  CONFIGURATION_AND_SW_HARDENING_NEEDED
+ * (cf. https://www.intel.com/content/dam/develop/public/us/en/documents/sgx-attestation-api-spec.pdf, based on v4 rev-6.0).
  *
  * @return 0 if verified successfully, 1 otherwise.
  */
@@ -274,8 +244,6 @@ int verify_enclave_quote_status
     return 1;
 }
 
-// used by both trusted and untrusted
-static
 int epid_verify_sgx_cert_extensions
 (
     uint8_t* der_crt,
@@ -330,26 +298,7 @@ int cert_verify_callback(int preverify, WOLFSSL_X509_STORE_CTX* store) {
     int ret = verify_sgx_cert_extensions(store->certs->buffer,
                                          store->certs->length);
 
-    // fprintf(stderr, "Verifying SGX certificate extensions ... %s\n",
-    //         ret == 0 ? "Success" : "Failure");
     printf("Verifying SGX certificate extensions ... %s\n",
             ret == 0 ? "Success" : "Failure");
     return !ret;
-}
-
-// used in trusted and untrusted
-// put as verify callback
-int verify_sgx_cert_extensions
-(
-    uint8_t* der_crt,
-    uint32_t der_crt_len
-)
-{
-    if (is_epid_ratls_cert(der_crt, der_crt_len)) {
-        return epid_verify_sgx_cert_extensions(der_crt, der_crt_len);
-    }
-    assert(0);
-    // Avoid compiler error: control reaches end of non-void function
-    // [-Werror=return-type]
-    return -1;
 }

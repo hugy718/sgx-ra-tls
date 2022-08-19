@@ -1,4 +1,7 @@
-#include <curl/curl.h>
+#ifndef RATLS_CURL_HELPER_H_
+#define RATLS_CURL_HELPER_H_
+
+#include "curl/curl.h"
 
 struct buffer_and_size {
     char* data;
@@ -14,3 +17,5 @@ void http_get
     struct curl_slist* request_headers,
     char* request_body
 );
+
+#endif  // RATLS_CURL_HELPER_H_

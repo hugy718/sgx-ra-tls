@@ -1,4 +1,6 @@
 # Makefile to build the wolfSSL-based remote attestation TLS library.
+### Project Settings ###
+PROJECT_ROOT ?= $(shell readlink -f ..)
 
 ### Intel(R) SGX SDK Settings ###
 SGX_SDK ?= /opt/intel/sgxsdk
@@ -34,184 +36,136 @@ else
     SGX_COMMON_CFLAGS += -O2
 endif
 
-ifneq ($(SGX_MODE), HW)
-	Trts_Library_Name := sgx_trts_sim
-	Service_Library_Name := sgx_tservice_sim
-else
-	Trts_Library_Name := sgx_trts
-	Service_Library_Name := sgx_tservice
-endif
-### Intel(R) SGX SDK Settings ###
-
-### Project Settings ###
-RATLS_LIB ?= ./
-PROJECT_ROOT ?= $(shell readlink -f ..)
-
 TSGX_Include_Paths := -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc
 USGX_Include_Paths := -I$(SGX_SDK)/include
 
-DEPS_Include_Paths := -I$(PROJECT_ROOT)/deps/local/include
-Wolfssl_Include_Paths := -I$(DEPS_Include_Paths)/wolfssl -I$(DEPS_Include_Paths)/wolfssl/wolfcrypt/
-Curl_Include_Paths := -I$(DEPS_Include_Paths)/wolfssl -I$(DEPS_Include_Paths)/wolfssl/wolfcrypt/
+Common_C_Cpp_Warnings := -Wall -Wextra -Wchar-subscripts \
+	-Wno-coverage-mismatch \
+	-Winit-self -Wpointer-arith -Wreturn-type \
+	-Waddress -Wsequence-point -Wformat-security \
+	-Wmissing-include-dirs -Wfloat-equal -Wundef -Wshadow \
+	-Wcast-align -Wcast-qual -Wconversion -Wredundant-decls
+Common_C_Cpp_Warnings += -Wwrite-strings -Wlogical-op
 
-Compiler_Warnings := -Wall -Wextra -Wwrite-strings -Wlogical-op -Wshadow -Werror
-Flags_Just_For_C := -Wno-implicit-function-declaration -std=c11
+Common_C_Warnings := -Wjump-misses-init -Wstrict-prototypes -Wunsuffixed-float-constants
+
+TCommon_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpie -fstack-protector -fno-builtin-printf
+UCommon_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes
+
+TCommon_C_Flags := $(Common_C_Cpp_Warnings) $(Common_C_Warnings) $(TCommon_C_Cpp_Flags) -Wno-implicit-function-declaration -std=c11
+UCommon_C_Flags := $(Common_C_Cpp_Warnings) $(Common_C_Warnings) $(UCommon_C_Cpp_Flags)
+### Intel(R) SGX SDK Settings ###
+
+### Project Settings ###
+DEPS_Include_Paths := -I$(PROJECT_ROOT)/deps/local/include
+RATLS_Include_Paths := -I./include
 
 TWolfssl_C_Extra_Flags := -DSGX_SDK -DWOLFSSL_SGX -DWOLFSSL_SGX_ATTESTATION -DUSER_TIME -DWOLFSSL_CERT_EXT -DFP_MAX_BITS=8192
 UWolfssl_C_Extra_Flags := -DWOLFSSL_SGX -DUSE_WOLFSSL
 
-TCommon_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpie -fstack-protector -fno-builtin-printf -I.
-UCommon_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes
+TCommon_C_Flags += $(TWolfssl_C_Extra_Flags) $(TSGX_Include_Paths) $(DEPS_Include_Paths) $(RATLS_Include_Paths)
 
-## combine the flags ## 
-override TCFLAGS += $(Compiler_Warnings) $(Flags_Just_For_C) $(TCommon_C_Cpp_Flags) $(TWolfssl_C_Extra_Flags) $(DEPS_Include_Paths) $(TSGX_Include_Paths) -I${PROJECT_ROOT} -Icommon -Iattester -Ichallenger
-UCFLAGS := $(UCommon_C_Cpp_Flags) $(UWolfssl_C_Extra_Flags) $(DEPS_Include_Paths) $(USGX_Include_Paths) -I${PROJECT_ROOT} -Icommon -Iattester -Ichallenger
+UCommon_C_Flags += $(UWolfssl_C_Extra_Flags) $(USGX_Include_Paths) $(DEPS_Include_Paths) $(RATLS_Include_Paths)
 ### Project Settings ###
 
 ### Sources ###
+
+.SECONDEXPANSION:
+
 ## trusted common lib ##
-Common_t_C_Files := $(PROJECT_ROOT)/ra/common/sgx_common_t.c
-Common_t_C_Objects := $(Common_t_C_Files:.c=_t.o)
-$(PROJECT_ROOT)/ra/common/sgx_common_t_t.o: $(PROJECT_ROOT)/ra/common/sgx_common_t.c
-	$(CC) $(TCFLAGS) -c $< -o $@
+Common_t_C_Files := common/internal_util_wolfssl.c common/wolfssl_tpatch.c
+Common_t_C_Objects := $(Common_t_C_Files:%.c=%_t.o)
+$(Common_t_C_Objects) : $$(patsubst %_t.o,%.c, $$@)
+	$(CC) $(TCommon_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
+
 ## untrusted common lib ##
-Common_u_C_Files := $(PROJECT_ROOT)/ra/common/sgx_common_u.c
-Common_u_C_Objects := $(Common_u_C_Files:.c=_u.o)
-$(PROJECT_ROOT)/ra/common/sgx_common_u_u.o: $(PROJECT_ROOT)/ra/common/sgx_common_u.c
-	$(CC) $(UCFLAGS) -c $< -o $@
+Common_u_C_Files := common/internal_util_wolfssl.c common/wolfssl_upatch.c
+Common_u_C_Objects := $(Common_u_C_Files:%.c=%_u.o)
+$(Common_u_C_Objects) : $$(patsubst %_u.o,%.c, $$@)
+	$(CC) $(UCommon_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
 ## trusted attester lib ##
-Attester_t_C_Files := $(PROJECT_ROOT)/ra/attester/wolfssl-ra-attester.c \
-	$(PROJECT_ROOT)/ra/attester/sgxsdk-ra-attester_t.c \
-	$(PROJECT_ROOT)/ra/common/wolfssl-ra.c \
+Attester_t_C_Files := attester/tattester_wolfssl.c \
+	attester/tattester.c \
 	$(PROJECT_ROOT)/option/ra_tls_options.c 
 
-Attester_t_C_Objects := $(Attester_t_C_Files:.c=_t.o)
+Attester_t_C_Objects := $(Attester_t_C_Files:%.c=%_t.o)
 
-$(PROJECT_ROOT)/ra/attester/wolfssl-ra-attester_t.o: $(PROJECT_ROOT)/ra/attester/wolfssl-ra-attester.c
-	$(CC) $(TCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-
-$(PROJECT_ROOT)/ra/attester/sgxsdk-ra-attester_t_t.o: $(PROJECT_ROOT)/ra/attester/sgxsdk-ra-attester_t.c
-	$(CC) $(TCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-
-$(PROJECT_ROOT)/ra/common/wolfssl-ra_t.o: $(PROJECT_ROOT)/ra/common/wolfssl-ra.c
-	$(CC) $(TCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-
-$(PROJECT_ROOT)/option/ra_tls_options_t.o: $(PROJECT_ROOT)/option/ra_tls_options.c
-	$(CC) $(TCFLAGS) -c $< -o $@
+$(Attester_t_C_Objects) : $$(patsubst %_t.o,%.c, $$@)
+	$(CC) $(TCommon_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
 ## untrusted attester lib ##
-Attester_u_C_Files :=	$(PROJECT_ROOT)/ra/attester/sgxsdk-ra-attester_u.c \
-	$(PROJECT_ROOT)/ra/attester/ias-ra.c \
-	$(PROJECT_ROOT)/ra/attester/curl_helper.c \
-	$(PROJECT_ROOT)/ra/common/wolfssl-ra.c
 
-Attester_u_C_Objects := $(Attester_u_C_Files:.c=_u.o)
-$(PROJECT_ROOT)/ra/attester/sgxsdk-ra-attester_u_u.o: $(PROJECT_ROOT)/ra/attester/sgxsdk-ra-attester_u.c
-	$(CC) $(UCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-$(PROJECT_ROOT)/ra/attester/ias-ra_u.o: $(PROJECT_ROOT)/ra/attester/ias-ra.c
-	$(CC) $(UCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-$(PROJECT_ROOT)/ra/attester/curl_helper_u.o: $(PROJECT_ROOT)/ra/attester/curl_helper.c
-	$(CC) $(UCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-$(PROJECT_ROOT)/ra/common/wolfssl-ra_u.o: $(PROJECT_ROOT)/ra/common/wolfssl-ra.c
-	$(CC) $(UCFLAGS) -c $< -o $@
+Attester_u_C_Files :=	attester/uattester_wolfssl.c \
+	attester/uattester.c \
+	attester/curl_helper.c
+
+Attester_u_C_Objects := $(Attester_u_C_Files:%.c=%_u.o)
+
+$(Attester_u_C_Objects) : $$(patsubst %_u.o,%.c, $$@)
+	$(CC) $(UCommon_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
 ## trusted challenger lib ## 
 ## (additionally needs the ecall implementation of set verify) ##
-Challenger_t_C_Files := $(PROJECT_ROOT)/ra/challenger/wolfssl-ra-challenger.c \
-	$(PROJECT_ROOT)/ra/challenger/sgxsdk-wolfssl-ra-challenger_t.c \
-	$(PROJECT_ROOT)/ra/challenger/ra-challenger.c \
-	$(PROJECT_ROOT)/ra/challenger/ias_sign_ca_cert.c \
-	$(PROJECT_ROOT)/ra/common/wolfssl-ra.c
+Challenger_t_C_Files := challenger/challenger_wolfssl.c \
+	challenger/challenger.c \
+	challenger/ias_sign_ca_cert.c
 
-Challenger_t_C_Objects := $(Challenger_t_C_Files:.c=_t.o)
-$(PROJECT_ROOT)/ra/challenger/sgxsdk-wolfssl-ra-challenger_t_t.o: $(PROJECT_ROOT)/ra/challenger/sgxsdk-wolfssl-ra-challenger_t.c
-	$(CC) $(TCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-$(PROJECT_ROOT)/ra/challenger/wolfssl-ra-challenger_t.o: $(PROJECT_ROOT)/ra/challenger/wolfssl-ra-challenger.c
-	$(CC) $(TCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-$(PROJECT_ROOT)/ra/challenger/ra-challenger_t.o: $(PROJECT_ROOT)/ra/challenger/ra-challenger.c
-	$(CC) $(TCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-$(PROJECT_ROOT)/ra/challenger/ias_sign_ca_cert_t.o: $(PROJECT_ROOT)/ra/challenger/ias_sign_ca_cert.c
-	$(CC) $(TCFLAGS) -c $< -o $@
+Challenger_t_C_Objects := $(Challenger_t_C_Files:%.c=%_t.o)
+$(Challenger_t_C_Objects) : $$(patsubst %_t.o,%.c, $$@)
+	$(CC) $(TCommon_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
 ## challenger lib ##
-Challenger_C_Files := $(PROJECT_ROOT)/ra/challenger/wolfssl-ra-challenger.c \
-	$(PROJECT_ROOT)/ra/challenger/ra-challenger.c \
-	$(PROJECT_ROOT)/ra/challenger/ias_sign_ca_cert.c \
-	$(PROJECT_ROOT)/ra/common/wolfssl-ra.c
+Challenger_C_Files := challenger/challenger_wolfssl.c \
+	challenger/uchallenger.c \
+	challenger/challenger.c \
+	challenger/ias_sign_ca_cert.c
 
-Challenger_C_Objects := $(Challenger_C_Files:.c=.o)
-$(PROJECT_ROOT)/ra/challenger/wolfssl-ra-challenger.o: $(PROJECT_ROOT)/ra/challenger/wolfssl-ra-challenger.c
-	$(CC) $(UCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-$(PROJECT_ROOT)/ra/challenger/ra-challenger.o: $(PROJECT_ROOT)/ra/challenger/ra-challenger.c
-	$(CC) $(UCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-$(PROJECT_ROOT)/ra/challenger/ias_sign_ca_cert.o: $(PROJECT_ROOT)/ra/challenger/ias_sign_ca_cert.c
-	$(CC) $(UCFLAGS) -c $< -o $@
-	@echo "CC   <=  $<"
-$(PROJECT_ROOT)/ra/common/wolfssl-ra.o: $(PROJECT_ROOT)/ra/common/wolfssl-ra.c
-	$(CC) $(UCFLAGS) -c $< -o $@
+Challenger_C_Objects := $(Challenger_C_Files:.c=_u.o)
+$(Challenger_C_Objects) : $$(patsubst %_u.o,%.c, $$@)
+	$(CC) $(UCommon_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 ### Sources ###
 
 .PHONY: all clean mrproper
 
-all: libratls_attester_t.a libratls_attester_u.a libratls_challenger_t.a libratls_challenger.a libratls_common_t.a libratls_common_u.a
-
-### Edger8r related sources ###
-## attester related sources ##
-attester/attester_t.h attester/attester_u.h : attester/attester.edl
-	$(SGX_EDGER8R) $^ --search-path $(SGX_SDK)/include \
-		--untrusted-dir attester/ --trusted-dir attester/ --header-only
-
-## challenger related sources ##
-challenger/challenger_t.c challenger/challenger_t.h challenger/challenger_u.c challenger/challenger_u.h: challenger/challenger.edl
-	$(SGX_EDGER8R) $^ --search-path $(SGX_SDK)/include \
-		--untrusted-dir challenger/ --trusted-dir challenger/ --header-only
-
-## common sources ##
-common/common_t.h common/common_u.h: common/common.edl
-	$(SGX_EDGER8R) $^ --search-path $(SGX_SDK)/include\
-		--untrusted-dir common/ --trusted-dir common/ --header-only
-### Edger8r related sources ###
+all: libratls_attester_t.a libratls_attester_u.a libratls_challenger_t.a libratls_challenger.a libratls_common_t.a libratls_common_u.a libratls_ext.a
 
 ### Main targets ###
-libratls_attester_u.a: attester/attester_u.h $(Attester_u_C_Objects)
-	ar rcs $@ $(Attester_u_C_Objects)
+libratls_attester_u.a: $(Attester_u_C_Objects)
+	ar rcs $@ $^
 	@echo "LINK =>  $@"
 
-libratls_attester_t.a: attester/attester_t.h $(Attester_t_C_Objects)
-	ar rcs $@ $(Attester_t_C_Objects)
+libratls_attester_t.a: $(Attester_t_C_Objects)
+	ar rcs $@ $^
 	@echo "LINK =>  $@"
 
-libratls_challenger_t.a: challenger/challenger_t.h $(Challenger_t_C_Objects)
-	ar rcs $@ $(Challenger_t_C_Objects)
+libratls_challenger_t.a: $(Challenger_t_C_Objects)
+	ar rcs $@ $^
 	@echo "LINK =>  $@"
 
 libratls_challenger.a : $(Challenger_C_Objects)
-	ar rcs $@ $(Challenger_C_Objects)
+	ar rcs $@ $^
 	@echo "LINK =>  $@"
 
-libratls_common_u.a: common/common_u.h $(Common_u_C_Objects)
+server/ecall_patch.o : server/ecall_patch.c
+	$(CC) $(TCommon_C_Flags) -c $< -o $@
+	@echo "CC   <=  $<"
+
+libratls_ext.a : server/ecall_patch.o
+	ar rcs $@ $^
+	@echo "LINK =>  $@"
+
+libratls_common_u.a: $(Common_u_C_Objects)
 	ar rcs $@ $(Common_u_C_Objects)
 	@echo "LINK => $@"
 
-libratls_common_t.a: common/common_t.h $(Common_t_C_Objects)
+libratls_common_t.a: $(Common_t_C_Objects)
 	ar rcs $@ $(Common_t_C_Objects)
 	@echo "LINK => $@" 
 ### Main targets ###
@@ -220,14 +174,9 @@ libratls_common_t.a: common/common_t.h $(Common_t_C_Objects)
 clean:
 	$(RM) *.a
 	$(RM) attester/*.o
-	$(RM) attester/attester_t.h
-	$(RM) attester/attester_u.h
 	$(RM) challenger/*.o
-	$(RM) challenger/challenger_t.h
-	$(RM) challenger/challenger_u.h
 	$(RM) common/*.o
-	$(RM) common/common_t.h
-	$(RM) common/common_u.h
+	$(RM) server/*.o
 
 mrproper: clean
 ### Clean commands ###

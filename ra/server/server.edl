@@ -1,0 +1,30 @@
+enclave {
+  include "wolfssl/ssl.h"
+
+  trusted {
+		public int enc_wolfSSL_Init(void);
+		public void enc_wolfSSL_Debugging_ON(void);
+		public void enc_wolfSSL_Debugging_OFF(void);
+		public WOLFSSL_CTX* enc_wolfSSL_CTX_new(
+      [user_check] WOLFSSL_METHOD* method);
+    public WOLFSSL* enc_wolfSSL_new([user_check] WOLFSSL_CTX* ctx);
+		public int enc_wolfSSL_set_fd([user_check]WOLFSSL* ssl, int fd);
+		public int enc_wolfSSL_connect([user_check]WOLFSSL* ssl);
+		public int enc_wolfSSL_write([user_check]WOLFSSL* ssl,
+									 [in, size=sz] const void* in,
+									 int sz);
+		public int enc_wolfSSL_get_error([user_check]WOLFSSL* ssl,
+										 int ret);
+		public int enc_wolfSSL_read([user_check]WOLFSSL* ssl,
+									[out, size=sz]void* out,
+									int sz);
+		public void enc_wolfSSL_free([user_check]WOLFSSL* ssl);
+		public void enc_wolfSSL_CTX_free([user_check]WOLFSSL_CTX* ctx);
+		public int enc_wolfSSL_Cleanup(void);
+
+    /* add set ra-tls verify ecall*/
+    public void enc_create_key_and_x509([user_check]WOLFSSL_CTX* ctx);
+
+    public void enc_wolfSSL_CTX_set_ratls_verify([user_check] WOLFSSL_CTX* ctx);
+  };
+};

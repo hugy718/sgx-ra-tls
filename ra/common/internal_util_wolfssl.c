@@ -1,11 +1,11 @@
+#include "internal_util_wolfssl.h"
+
 #include <assert.h>
 #include <stdint.h>
 
-#include <wolfssl/options.h>
-#include <wolfssl/wolfcrypt/asn_public.h>
-#include <wolfssl/wolfcrypt/rsa.h>
-#include "ra.h"
-#include "wolfssl-ra.h"
+#include "wolfssl/wolfcrypt/asn_public.h"
+
+static const int rsa_pub_3072_raw_der_len = 398; /* rsa_pub_3072_pcks_der_len - pcks_nr_1_header_len */
 
 void sha256_rsa_pubkey
 (
@@ -27,8 +27,3 @@ void sha256_rsa_pubkey
     wc_Sha256Update(&sha, buf, pub_rsa_key_der_len);
     wc_Sha256Final(&sha, hash);
 }
-
-// /* This function only exists to make edger8r happy. There must be at
-//    least one trusted (ECALL) function. */
-// void dummy(void) {
-// }

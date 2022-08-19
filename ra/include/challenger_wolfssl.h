@@ -1,6 +1,7 @@
-#ifndef _WOLFSSL_RA_CHALLENGER_H_
-#define _WOLFSSL_RA_CHALLENGER_H_
+#ifndef RATLS_CHALLENGER_WOLFSSL_H_
+#define RATLS_CHALLENGER_WOLFSSL_H_
 
+#include "wolfssl/options.h"
 #include "wolfssl/ssl.h"
 
 #ifdef __cplusplus
@@ -13,4 +14,4 @@ int cert_verify_callback(int preverify, WOLFSSL_X509_STORE_CTX* store);
 };
 #endif
 
-#endif  // _WOLFSSL_RA_CHALLENGER_H_
+#endif  // RATLS_CHALLENGER_WOLFSSL_H_

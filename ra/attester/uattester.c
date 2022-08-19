@@ -1,36 +1,26 @@
 #define _GNU_SOURCE // for memmem()
-
 #include <assert.h>
-#include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-// #include <curl/curl.h>
-
-// #if defined(USE_OPENSSL)
-// #include <openssl/evp.h> // for base64 encode/decode
-// #elif defined(USE_WOLFSSL)
-#include <wolfssl/options.h>
-#include <wolfssl/wolfcrypt/coding.h>
-// #elif defined(USE_MBEDTLS)
-// #include <mbedtls/base64.h>
-// #else
-// #error Must use one of OpenSSL/wolfSSL/mbedtls
-// #endif
-
-#include <stdint.h>
 
 #include <sgx_report.h>
+#include <sgx_uae_service.h>
 
 #include "ra.h"
-#include "ra-attester.h"
-#include "ias-ra.h"
+#include "attester.h"
 #include "curl_helper.h"
+#include "uattester_internal.h"
+
+// for base64_encode only
+#include "wolfssl/wolfcrypt/coding.h"
+
+/* Untrusted code to do remote attestation with the SGX SDK. */
 
 static const char pem_marker_begin[] = "-----BEGIN CERTIFICATE-----";
 static const char pem_marker_end[] = "-----END CERTIFICATE-----";
 
-static
-void extract_certificates_from_response_header
+static void extract_certificates_from_response_header
 (
     CURL* curl,
     const char* header,
@@ -95,7 +85,7 @@ void extract_certificates_from_response_header
 }
 
 /* The header has the certificates and report signature. */
-void parse_response_header
+static void parse_response_header
 (
     const char* header,
     size_t header_len,
@@ -120,41 +110,6 @@ void parse_response_header
     assert((size_t) (sig_end - sig_begin) <= signature_max_size);
     memcpy(signature, sig_begin, sig_end - sig_begin);
     *signature_size = sig_end - sig_begin;
-}
-
-/**
- * @return Length of base64 encoded data including terminating NUL-byte.
- */
-static void base64_encode
-(
-    uint8_t *in,
-    uint32_t in_len,
-    uint8_t* out,
-    uint32_t* out_len /* in/out */
-)
-{
-    // + 1 to account for the terminating \0.
-    assert(*out_len >= (in_len + 3 - 1) / 3 * 4 + 1);
-    bzero(out, *out_len);
-    
-#if defined(USE_OPENSSL)
-        int ret = EVP_EncodeBlock(out, in, in_len);
-        // + 1 since EVP_EncodeBlock() returns length excluding the terminating \0.
-        assert((size_t) ret + 1 <= *out_len);
-        *out_len = ret + 1;
-#elif defined(USE_WOLFSSL)
-        int ret = Base64_Encode_NoNl(in, in_len, out, out_len);
-        assert(ret == 0);
-        // No need append terminating \0 since we memset() the whole
-        // buffer in the beginning.
-        *out_len += 1;
-#elif defined(USE_MBEDTLS)
-        size_t olen;
-        int ret = mbedtls_base64_encode(out, *out_len, &olen, in, in_len);
-        assert(ret == 0);
-        assert(olen <= UINT32_MAX);
-        *out_len = (uint32_t) olen;
-#endif
 }
 
 /** Turns a binary quote into an attestation verification report.
@@ -225,4 +180,43 @@ void obtain_attestation_verification_report
     free(header.data);
     free(body.data);
     curl_slist_free_all(request_headers);
+}
+
+void ocall_remote_attestation
+(
+    sgx_report_t* report,
+    const struct ra_tls_options* opts,
+    attestation_verification_report_t* attn_report
+)
+{
+    // produce quote
+    uint32_t quote_size;
+    sgx_calc_quote_size(NULL, 0, &quote_size);
+    
+    sgx_quote_t* quote = (sgx_quote_t*) calloc(1, quote_size);
+    
+    sgx_status_t status;
+    status = sgx_get_quote(report,
+                           opts->quote_type,
+                           &opts->spid,
+                           NULL,
+                           NULL,
+                           0,
+                           NULL,
+                           quote,
+                           quote_size);
+    assert(SGX_SUCCESS == status);
+
+    // verify against IAS
+    obtain_attestation_verification_report(quote, quote_size, opts, attn_report);
+}
+
+void ocall_sgx_init_quote
+(
+    sgx_target_info_t* target_info
+)
+{
+    sgx_epid_group_id_t gid;
+    sgx_status_t status = sgx_init_quote(target_info, &gid);
+    assert(status == SGX_SUCCESS);
 }
