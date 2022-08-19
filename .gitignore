@@ -66,3 +66,15 @@ ra_tls_options.c
 # any log files
 *LOG*
 *.log
+
+# edger8r generated files
+**/*_t.h
+**/*_t.c
+**/*_u.h
+**/*_u.c
+
+# executables
+**/App
+
+# installed
+install

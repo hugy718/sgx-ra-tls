@@ -1,6 +1,7 @@
 # Makefile to build non-SGX-SDK-based RA-TLS client and server
 # programs.
 export SGX_SDK ?= /opt/intel/sgxsdk
+INSTALL_PREFIX ?= $(abspath ./install)
 
 ### Variable Settings ###
 CFLAGS+=-std=gnu99 -I. -I$(SGX_SDK)/include -Ideps/local/include -fPIC
@@ -13,7 +14,7 @@ CFLAGS+=-DSGX_GROUP_OUT_OF_DATE
 ### Variable Settings ###
 
 ### Phony targets ###
-.PHONY: all deps ratls_libs clients server clean mrproper 
+.PHONY: all deps ratls_libs clients server install clean mrproper 
 
 ### IAS EPID configuration ###
 option/ra_tls_options.c: option/ra_tls_options.c.sh
@@ -70,8 +71,8 @@ ratls_libs: lib
 ### Build client ###
 WOLFSSL_CLIENT_LIBS=-l:libratls_challenger.a -l:libratls_common_u.a -l:libwolfssl.a -lm
 
-wolfssl-client: client/client-tls.c ratls_libs
-	$(CC) -o $@ $(filter %.c, $^) $(CFLAGS) -I./ra/include -Llib -Ldeps/local/lib $(WOLFSSL_CLIENT_LIBS)
+wolfssl-client: client/client-tls.c install
+	$(CC) -o $@ $< $(CFLAGS) -I./install/include -L./install/lib -Ldeps/local/lib $(WOLFSSL_CLIENT_LIBS)
 
 clients: wolfssl-client mtclient
 ### Build client ###
@@ -82,25 +83,30 @@ deps/local/lib/libwolfssl.sgx.static.lib.a: deps/local/lib/libwolfssl.a
 	mkdir -p deps/local/lib && cp deps/wolfssl/IDE/LINUX-SGX/libwolfssl.sgx.static.lib.a deps/local/lib
 
 ### Build server ###
-enclave-app: deps/local/lib/libwolfssl.sgx.static.lib.a ratls_libs
+enclave-app: deps/local/lib/libwolfssl.sgx.static.lib.a install
 	$(MAKE) -C server SGX_MODE=HW SGX_DEBUG=0 SGX_PRERELEASE=1 SGX_WOLFSSL_LIB=$(shell readlink -f deps/local/lib) SGX_SDK=$(SGX_SDK) DEPS_INCLUDE_DIR=$(shell readlink -f deps/local/include) SGX_RA_TLS_LIB=$(shell readlink -f lib/)
 
 server: enclave-app mserver
 ### Build server ###
 
 ### Build server with mutual attestation ###
-mserver: deps/local/lib/libwolfssl.sgx.static.lib.a ratls_libs
+mserver: deps/local/lib/libwolfssl.sgx.static.lib.a install
 	$(MAKE) -C mserver SGX_MODE=HW SGX_DEBUG=0 SGX_PRERELEASE=1 SGX_WOLFSSL_LIB=$(shell readlink -f deps/local/lib) SGX_SDK=$(SGX_SDK) DEPS_INCLUDE_DIR=$(shell readlink -f deps/local/include) SGX_RA_TLS_LIB=$(shell readlink -f lib/)
 ### Build server with mutual attestation ###
 
 ### Build client with mutual attestation ###
-mtclient: deps/local/lib/libwolfssl.sgx.static.lib.a ratls_libs
+mtclient: deps/local/lib/libwolfssl.sgx.static.lib.a install
 	$(MAKE) -C mtclient SGX_MODE=HW SGX_DEBUG=0 SGX_PRERELEASE=1 SGX_WOLFSSL_LIB=$(shell readlink -f deps/local/lib) SGX_SDK=$(SGX_SDK) DEPS_INCLUDE_DIR=$(shell readlink -f deps/local/include) SGX_RA_TLS_LIB=$(shell readlink -f lib/)
 ### Build client with mutual attestation ###
 
 
 ### Build all ###
 all: deps clients server
+
+### install ratls libs ###
+
+install: ratls_libs
+	$(MAKE) INSTALL_PREFIX=$(INSTALL_PREFIX) -C ra install
 
 ### clean commands ###
 clean:
@@ -121,4 +127,5 @@ mrproper: clean
 	$(MAKE) -C mserver clean
 	$(MAKE) -C mtclient clean
 	$(RM) option/ra_tls_options.c
+	$(RM) -rf install
 ### clean commands ###

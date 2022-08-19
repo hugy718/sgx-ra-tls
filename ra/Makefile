@@ -1,6 +1,7 @@
 # Makefile to build the wolfSSL-based remote attestation TLS library.
 ### Project Settings ###
 PROJECT_ROOT ?= $(shell readlink -f ..)
+INSTALL_PREFIX ?= ./install
 
 ### Intel(R) SGX SDK Settings ###
 SGX_SDK ?= /opt/intel/sgxsdk
@@ -132,7 +133,7 @@ $(Challenger_C_Objects) : $$(patsubst %_u.o,%.c, $$@)
 	@echo "CC   <=  $<"
 ### Sources ###
 
-.PHONY: all clean mrproper
+.PHONY: all install clean mrproper
 
 all: libratls_attester_t.a libratls_attester_u.a libratls_challenger_t.a libratls_challenger.a libratls_common_t.a libratls_common_u.a libratls_ext.a
 
@@ -170,6 +171,16 @@ libratls_common_t.a: $(Common_t_C_Objects)
 	@echo "LINK => $@" 
 ### Main targets ###
 
+INSTALL_LIB_DIR = $(INSTALL_PREFIX)/lib
+INSTALL_INCLUDE_DIR = $(INSTALL_PREFIX)/include
+
+install: all
+	install -d $(INSTALL_INCLUDE_DIR)
+	install -d $(INSTALL_LIB_DIR)
+	install -C -m 644 *.a $(INSTALL_LIB_DIR)
+	install -C -m 644 */*edl $(INSTALL_INCLUDE_DIR)
+	install -C -m 644 include/*.h $(INSTALL_INCLUDE_DIR)
+
 ### Clean commands ###
 clean:
 	$(RM) *.a
@@ -179,4 +190,5 @@ clean:
 	$(RM) server/*.o
 
 mrproper: clean
+	$(RM) -rf install
 ### Clean commands ###

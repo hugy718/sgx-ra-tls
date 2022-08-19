@@ -46,10 +46,9 @@ endif
 
 ### Project Settings ###
 DEPS_LIBS_DIR="../deps/local/lib"
-SGX_RA_TLS_ATTESTER_DIR="../ra/attester"
-SGX_RA_TLS_CHALLENGER_DIR="../ra/challenger"
-SGX_RA_TLS_COMMON_DIR="../ra/common"
-SGX_RA_TLS_Include_Paths := -I../ra/include
+SGX_RA_TLS_INSTALL_DIR ?= $(abspath ../install)
+SGX_RA_TLS_Include_Path := $(SGX_RA_TLS_INSTALL_DIR)/include
+SGX_RA_TLS_Lib_Path := $(SGX_RA_TLS_INSTALL_DIR)/lib
 
 Common_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes -I. \
 										-Winit-self -Wpointer-arith -Wreturn-type \
@@ -60,7 +59,7 @@ Common_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes -I. \
 										-Wunsuffixed-float-constants
 # This flag needed for some wolfssl header
 Wolfssl_C_Extra_Flags := -DWOLFSSL_SGX 
-Tclient_App_C_Flags := $(Common_C_Cpp_Flags) $(Wolfssl_C_Extra_Flags) -Iuntrusted -I$(SGX_SDK)/include $(SGX_RA_TLS_Include_Paths) -I$(DEPS_INCLUDE_DIR)
+Tclient_App_C_Flags := $(Common_C_Cpp_Flags) $(Wolfssl_C_Extra_Flags) -Iuntrusted -I$(SGX_SDK)/include -I$(SGX_RA_TLS_Include_Path) -I$(DEPS_INCLUDE_DIR)
 
 # Three configuration modes - Debug, prerelease, release
 #   Debug - Macro DEBUG enabled.
@@ -114,7 +113,7 @@ Tclient_App_C_Objects := $(Tclient_App_C_Files:.c=.o)
 
 ## Edger8r related sources ##
 untrusted/Tclient_Enclave_u.c: $(SGX_EDGER8R) trusted/Tclient_Enclave.edl
-	cd ./untrusted && $(SGX_EDGER8R) --untrusted ../trusted/Tclient_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
+	cd ./untrusted && $(SGX_EDGER8R) --untrusted ../trusted/Tclient_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path $(SGX_RA_TLS_Include_Path)
 	@echo "GEN  =>  $@"
 
 untrusted/Tclient_Enclave_u.o: untrusted/Tclient_Enclave_u.c
