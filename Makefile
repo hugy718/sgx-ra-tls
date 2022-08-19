@@ -68,10 +68,10 @@ ratls_libs: lib
 ### Build ra-tls libs ###
 
 ### Build client ###
-WOLFSSL_CLIENT_LIBS=-l:libratls_challenger.a -l:libwolfssl.a -lm
+WOLFSSL_CLIENT_LIBS=-l:libratls_challenger.a -l:libratls_common_u.a -l:libwolfssl.a -lm
 
 wolfssl-client: client/client-tls.c ratls_libs
-	$(CC) -o $@ $(filter %.c, $^) $(CFLAGS) -Llib -Ldeps/local/lib $(WOLFSSL_CLIENT_LIBS)
+	$(CC) -o $@ $(filter %.c, $^) $(CFLAGS) -I./ra/include -Llib -Ldeps/local/lib $(WOLFSSL_CLIENT_LIBS)
 
 clients: wolfssl-client mtclient
 ### Build client ###
@@ -83,19 +83,19 @@ deps/local/lib/libwolfssl.sgx.static.lib.a: deps/local/lib/libwolfssl.a
 
 ### Build server ###
 enclave-app: deps/local/lib/libwolfssl.sgx.static.lib.a ratls_libs
-	$(MAKE) -C server SGX_MODE=HW SGX_DEBUG=1 SGX_WOLFSSL_LIB=$(shell readlink -f deps/local/lib) SGX_SDK=$(SGX_SDK) DEPS_INCLUDE_DIR=$(shell readlink -f deps/local/include) SGX_RA_TLS_LIB=$(shell readlink -f lib/)
+	$(MAKE) -C server SGX_MODE=HW SGX_DEBUG=0 SGX_PRERELEASE=1 SGX_WOLFSSL_LIB=$(shell readlink -f deps/local/lib) SGX_SDK=$(SGX_SDK) DEPS_INCLUDE_DIR=$(shell readlink -f deps/local/include) SGX_RA_TLS_LIB=$(shell readlink -f lib/)
 
 server: enclave-app mserver
 ### Build server ###
 
 ### Build server with mutual attestation ###
 mserver: deps/local/lib/libwolfssl.sgx.static.lib.a ratls_libs
-	$(MAKE) -C mserver SGX_MODE=HW SGX_DEBUG=1 SGX_WOLFSSL_LIB=$(shell readlink -f deps/local/lib) SGX_SDK=$(SGX_SDK) DEPS_INCLUDE_DIR=$(shell readlink -f deps/local/include) SGX_RA_TLS_LIB=$(shell readlink -f lib/)
+	$(MAKE) -C mserver SGX_MODE=HW SGX_DEBUG=0 SGX_PRERELEASE=1 SGX_WOLFSSL_LIB=$(shell readlink -f deps/local/lib) SGX_SDK=$(SGX_SDK) DEPS_INCLUDE_DIR=$(shell readlink -f deps/local/include) SGX_RA_TLS_LIB=$(shell readlink -f lib/)
 ### Build server with mutual attestation ###
 
 ### Build client with mutual attestation ###
 mtclient: deps/local/lib/libwolfssl.sgx.static.lib.a ratls_libs
-	$(MAKE) -C mtclient SGX_MODE=HW SGX_DEBUG=1 SGX_WOLFSSL_LIB=$(shell readlink -f deps/local/lib) SGX_SDK=$(SGX_SDK) DEPS_INCLUDE_DIR=$(shell readlink -f deps/local/include) SGX_RA_TLS_LIB=$(shell readlink -f lib/)
+	$(MAKE) -C mtclient SGX_MODE=HW SGX_DEBUG=0 SGX_PRERELEASE=1 SGX_WOLFSSL_LIB=$(shell readlink -f deps/local/lib) SGX_SDK=$(SGX_SDK) DEPS_INCLUDE_DIR=$(shell readlink -f deps/local/include) SGX_RA_TLS_LIB=$(shell readlink -f lib/)
 ### Build client with mutual attestation ###
 
 

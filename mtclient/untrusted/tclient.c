@@ -1,9 +1,3 @@
-#include "sgx_urts.h"
-#include <sys/types.h>
-#include <sys/socket.h>
-
-#include "Tclient_Enclave_u.h"
-
 #define CLIENT_ENCLAVE_FILENAME "Tclient_Enclave.signed.so"
 
 #if _DEBUG
@@ -16,7 +10,14 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <wolfssl/ssl.h>
+#include <sys/socket.h>
+
+#include "sgx_urts.h"
+
+#include "wolfssl/options.h"
+#include "wolfssl/ssl.h"
+
+#include "Tclient_Enclave_u.h"
 
 #define MAXRCVDATASIZE 4096
 #define SERV_PORT 11111

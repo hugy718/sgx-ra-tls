@@ -1,11 +1,8 @@
 enclave {
 	include "wolfssl/ssl.h"
-	include "wolfssl/wolfcrypt/settings.h"
-	include "wolfssl/wolfcrypt/types.h"
 
   from "attester.edl" import *;
-  from "challenger.edl" import *;
-  from "common.edl" import *;
+  from "ratls_wolfssl.edl" import *;
 
     trusted {
       public int enc_sample_send(

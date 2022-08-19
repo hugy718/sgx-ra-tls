@@ -49,9 +49,8 @@ DEPS_LIBS_DIR="../deps/local/lib"
 SGX_RA_TLS_ATTESTER_DIR="../ra/attester"
 SGX_RA_TLS_CHALLENGER_DIR="../ra/challenger"
 SGX_RA_TLS_COMMON_DIR="../ra/common"
-SGX_RA_TLS_Include_Paths := -I$(SGX_RA_TLS_ATTESTER_DIR) \
-						 -I$(SGX_RA_TLS_CHALLENGER_DIR) \
-						 -I$(SGX_RA_TLS_COMMON_DIR)
+SGX_RA_TLS_SERVER_DIR="../ra/server"
+SGX_RA_TLS_Include_Paths := -I../ra/include
 
 Common_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes -I. \
 										-Winit-self -Wpointer-arith -Wreturn-type \
@@ -116,7 +115,7 @@ Server_App_C_Objects := $(Server_App_C_Files:.c=.o)
 
 ## Edger8r related sources ##
 untrusted/Server_Enclave_u.c: $(SGX_EDGER8R) trusted/Server_Enclave.edl
-	cd ./untrusted && $(SGX_EDGER8R) --untrusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
+	cd ./untrusted && $(SGX_EDGER8R) --untrusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_SERVER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR) --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../ra/include
 	@echo "GEN  =>  $@"
 
 untrusted/Server_Enclave_u.o: untrusted/Server_Enclave_u.c

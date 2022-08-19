@@ -49,9 +49,7 @@ DEPS_LIBS_DIR="../deps/local/lib"
 SGX_RA_TLS_ATTESTER_DIR="../ra/attester"
 SGX_RA_TLS_CHALLENGER_DIR="../ra/challenger"
 SGX_RA_TLS_COMMON_DIR="../ra/common"
-SGX_RA_TLS_Include_Paths := -I$(SGX_RA_TLS_ATTESTER_DIR) \
-						 -I$(SGX_RA_TLS_CHALLENGER_DIR) \
-						 -I$(SGX_RA_TLS_COMMON_DIR)
+SGX_RA_TLS_Include_Paths := -I../ra/include
 
 Common_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes -I. \
 										-Winit-self -Wpointer-arith -Wreturn-type \

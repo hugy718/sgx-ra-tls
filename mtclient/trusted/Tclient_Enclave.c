@@ -5,8 +5,7 @@
 
 #include "Tclient_Enclave_t.h"
 
-#include "wolfssl-ra-attester.h"
-#include "wolfssl-ra-challenger.h"
+#include "challenger_wolfssl.h"
 
 #include "sgx_trts.h"
 

@@ -50,9 +50,8 @@ endif
 SGX_RA_TLS_ATTESTER_DIR="../ra/attester"
 SGX_RA_TLS_CHALLENGER_DIR="../ra/challenger"
 SGX_RA_TLS_COMMON_DIR="../ra/common"
-SGX_RA_TLS_Include_Paths := -I$(SGX_RA_TLS_ATTESTER_DIR) \
-						 -I$(SGX_RA_TLS_CHALLENGER_DIR) \
-						 -I$(SGX_RA_TLS_COMMON_DIR)
+SGX_RA_TLS_SERVER_DIR="../ra/server"
+SGX_RA_TLS_Include_Paths := -I../ra/include
 
 SGX_Include_Paths := -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc
 Wolfssl_Include_Paths := -I$(DEPS_INCLUDE_DIR)
@@ -73,9 +72,10 @@ Crypto_Library_Name := sgx_tcrypto
 
 Server_Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) \
 	-Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) \
-	-L$(SGX_RA_TLS_LIB) -lratls_attester_t -lratls_common_t\
+	-L$(SGX_RA_TLS_LIB) -lratls_ext \
+	-L$(SGX_RA_TLS_LIB) -lratls_attester_t -lratls_challenger_t -lratls_common_t\
 	-L$(SGX_WOLFSSL_LIB) -lwolfssl.sgx.static.lib \
-		-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
+	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
 	-Wl,--start-group -lsgx_tstdc -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
 	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
 	-Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
@@ -105,7 +105,7 @@ Server_Enclave_C_Objects := $(Server_Enclave_C_Files:.c=.o)
 
 ### Edger8r related sourcs ###
 trusted/Server_Enclave_t.c: $(SGX_EDGER8R) ./trusted/Server_Enclave.edl
-	cd ./trusted && $(SGX_EDGER8R) --trusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_CHALLENGER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
+	cd ./trusted && $(SGX_EDGER8R) --trusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path ../$(SGX_RA_TLS_COMMON_DIR) --search-path ../$(SGX_RA_TLS_SERVER_DIR) --search-path ../$(SGX_RA_TLS_ATTESTER_DIR)
 	@echo "GEN  =>  $@"
 
 trusted/Server_Enclave_t.o: ./trusted/Server_Enclave_t.c

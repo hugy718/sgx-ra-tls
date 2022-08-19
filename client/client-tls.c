@@ -23,27 +23,24 @@
 // #ifdef SGX_RATLS_MUTUAL
 // #include <assert.h>
 // #endif
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /* socket includes */
-#include <sys/socket.h>
 #include <arpa/inet.h>
-#include <netinet/in.h>
-#include <unistd.h>
+#include <sys/socket.h>
 
 /* wolfSSL */
-#include <wolfssl/options.h>
-#include <wolfssl/ssl.h>
+#include "wolfssl/options.h"
+#include "wolfssl/ssl.h"
 
 #define DEFAULT_PORT 11111
 
 #include <sgx_quote.h>
 
-#include "ra/common/ra.h"
-#include "ra/challenger/ra-challenger.h"
-#include "ra/challenger/wolfssl-ra-challenger.h"
+#include "uchallenger.h"
+#include "challenger_wolfssl.h"
 
 int main(int argc, char** argv)
 {
@@ -122,18 +119,7 @@ int main(int argc, char** argv)
     const unsigned char* der =
         wolfSSL_X509_get_der(srvcrt, &derSz);
 
-    sgx_quote_t quote;
-    get_quote_from_cert(der, derSz, &quote);
-    sgx_report_body_t* body = &quote.report_body;
-
-    printf("Server's SGX identity:\n");
-    printf("  . MRENCLAVE = ");
-    for (int i=0; i < SGX_HASH_SIZE; ++i) printf("%02x", body->mr_enclave.m[i]);
-    printf("\n");
-    
-    printf("  . MRSIGNER  = ");
-    for (int i=0; i < SGX_HASH_SIZE; ++i) printf("%02x", body->mr_signer.m[i]);
-    printf("\n");
+    dprintf_ratls_cert(fileno(stdout), (uint8_t*) der, derSz);
 
     const char* http_request = "GET / HTTP/1.0\r\n\r\n";
     len = strlen(http_request);
