@@ -293,6 +293,7 @@ int epid_verify_sgx_cert_extensions
 
 int cert_verify_callback(int preverify, WOLFSSL_X509_STORE_CTX* store) {
 
+    printf("Verifying SGX certificate extensions ... %s\n");
     (void) preverify;
 
     int ret = verify_sgx_cert_extensions(store->certs->buffer,

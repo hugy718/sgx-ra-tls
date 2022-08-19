@@ -93,7 +93,9 @@ void enc_create_key_and_x509(WOLFSSL_CTX* ctx) {
 }
 
 void enc_wolfSSL_CTX_set_ratls_verify(WOLFSSL_CTX* ctx) {
-    if(sgx_is_within_enclave(ctx, wolfSSL_CTX_GetObjectSize()) != 1)
-        abort();
-    wolfSSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, cert_verify_callback);
+  if(sgx_is_within_enclave(ctx, wolfSSL_CTX_GetObjectSize()) != 1)
+      abort();
+  // enforcing the check of clients certificate
+  wolfSSL_CTX_set_verify(ctx,
+    SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, cert_verify_callback);
 }

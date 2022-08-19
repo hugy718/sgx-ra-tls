@@ -19,11 +19,20 @@
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
 */
 
+#define SERVER_ENCLAVE_FILENAME "Server_Enclave.signed.so"
 
-#include "stdafx.h"
-#include "App.h" /* contains include of Enclave_u.h which has wolfSSL header files */
-// #include "client-tls.h"
-#include "server-tls.h"
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include <arpa/inet.h>
+#include <sys/types.h> /* for send/recv */
+#include <sys/socket.h> /* for send/recv */
+
+#include "sgx_urts.h"	 /* for enclave_id etc.*/
+
+#include "Server_Enclave_u.h"   /* contains untrusted wrapper functions used to call enclave functions*/
 
 /* Use Debug SGX ? */
 #if _DEBUG
@@ -31,6 +40,8 @@
 #else
 	#define DEBUG_VALUE 1
 #endif
+
+#define DEFAULT_PORT 11111
 
 int main(int argc, char* argv[]) /* not using since just testing w/ wc_test */
 {
@@ -40,40 +51,164 @@ int main(int argc, char* argv[]) /* not using since just testing w/ wc_test */
 	int ret = 0;
 	int sgxStatus = 0;
 	int updated = 0;
-
-	/* only print off if no command line arguments were passed in */
-	if (argc != 2 || strlen(argv[1]) != 2) {
-		printf("Usage:\n"
-               "\t-c Run a TLS client in enclave\n"
-               "\t-s Run a TLS server in enclave\n"
-               );
-        return 0;
-	}
-
-    memset(t, 0, sizeof(sgx_launch_token_t));
-
+  memset(t, 0, sizeof(sgx_launch_token_t));
 	ret = sgx_create_enclave(SERVER_ENCLAVE_FILENAME, DEBUG_VALUE, &t, &updated, &id, NULL);
 	if (ret != SGX_SUCCESS) {
 		printf("Failed to create Enclave : error %d - %#x.\n", ret, ret);
 		return 1;
 	}
 
+  int                sockfd;
+  int                connd;
+  struct sockaddr_in servAddr;
+  struct sockaddr_in clientAddr;
+  socklen_t          size = sizeof(clientAddr);
+  char               buff[256];
+  size_t             len;
 
-    switch(argv[1][1]) {
-        // case 'c':
-        //     printf("Client Test:\n");
-        //     client_connect(id);
-        //     break;
+  /* declare wolfSSL objects */
+  WOLFSSL_CTX* ctx;
+  WOLFSSL*     ssl;
+  WOLFSSL_METHOD* method;
 
-        case 's':
-            printf("Server Test:\n");
-            server_connect(id);
-            break;
+  /* Initialize wolfSSL */
+  sgxStatus = enc_wolfSSL_Init(id, &ret);
+  if (sgxStatus != SGX_SUCCESS || ret != WOLFSSL_SUCCESS) {
+    printf("wolfSSL_Init failure\n");
+    return EXIT_FAILURE;
+  }
 
-        default:
-            printf("Unrecognized option set!\n");
-            break;
-    }
+#ifdef SGX_DEBUG
+  enc_wolfSSL_Debugging_ON(id);
+#else
+  enc_wolfSSL_Debugging_OFF(id);
+#endif
 
-    return 0;
+  /* Create a socket that uses an internet IPv4 address,
+    * Sets the socket to be stream based (TCP),
+    * 0 means choose the default protocol. */
+  if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+      fprintf(stderr, "ERROR: failed to create the socket\n");
+      return -1;
+  }
+
+  int enable = 1;
+  ret = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
+  assert(ret != -1);
+
+  /* Create and initialize WOLFSSL_CTX */
+  sgxStatus = enc_wolfTLSv1_2_server_method(id, &method);
+  if (sgxStatus != SGX_SUCCESS || method == NULL) {
+      printf("wolfTLSv1_2_server_method failure\n");
+      return EXIT_FAILURE;
+  }
+
+  sgxStatus = enc_wolfSSL_CTX_new(id, &ctx, method);
+  if (sgxStatus != SGX_SUCCESS || ctx == NULL) {
+      printf("wolfSSL_CTX_new failure\n");
+      return EXIT_FAILURE;
+  }
+
+#if 0
+  /* Load server certificates into WOLFSSL_CTX */
+  sgxStatus = enc_wolfSSL_CTX_use_certificate_buffer(id, &ret, ctx,
+          server_cert_der_2048, sizeof_server_cert_der_2048, SSL_FILETYPE_ASN1);
+  if (sgxStatus != SGX_SUCCESS || ret != SSL_SUCCESS) {
+      printf("enc_wolfSSL_CTX_use_certificate_chain_buffer_format failure\n");
+      return EXIT_FAILURE;
+  }
+
+  /* Load server key into WOLFSSL_CTX */
+  sgxStatus = enc_wolfSSL_CTX_use_PrivateKey_buffer(id, &ret, ctx,
+          server_key_der_2048, sizeof_server_key_der_2048, SSL_FILETYPE_ASN1);
+  if (sgxStatus != SGX_SUCCESS || ret != SSL_SUCCESS) {
+      printf("wolfSSL_CTX_use_PrivateKey_buffer failure\n");
+      return EXIT_FAILURE;
+  }
+#endif
+  // setup verify callback in enclave (only difference with server)
+  enc_wolfSSL_CTX_set_ratls_verify(id, ctx);
+  // setup verify callback in enclave (only difference with server)
+  
+  // prepare ra cert and add as extension
+  sgxStatus = enc_create_key_and_x509(id, ctx);
+  assert(sgxStatus == SGX_SUCCESS);
+  // prepare ra cert and add as extension
+  
+  /* Initialize the server address struct with zeros */
+  memset(&servAddr, 0, sizeof(servAddr));
+  /* Fill in the server address */
+  servAddr.sin_family      = AF_INET;             /* using IPv4      */
+  servAddr.sin_port        = htons(DEFAULT_PORT); /* on DEFAULT_PORT */
+  servAddr.sin_addr.s_addr = INADDR_ANY;          /* from anywhere   */
+
+  /* Bind the server socket to our port */
+  if (bind(sockfd, (struct sockaddr*)&servAddr, sizeof(servAddr)) == -1) {
+      fprintf(stderr, "ERROR: failed to bind\n");
+      return -1;
+  }
+
+  /* Listen for a new connection, allow 5 pending connections */
+  if (listen(sockfd, 5) == -1) {
+      fprintf(stderr, "ERROR: failed to listen\n");
+      return -1;
+  }
+
+  printf("Waiting for a connection...\n");
+
+  /* Accept client connections */
+  if ((connd = accept(sockfd, (struct sockaddr*)&clientAddr, &size))
+      == -1) {
+      fprintf(stderr, "ERROR: failed to accept the connection\n\n");
+      return -1;
+  }
+
+  sgxStatus = enc_wolfSSL_new(id, &ssl, ctx);
+
+  if (sgxStatus != SGX_SUCCESS || ssl == NULL) {
+      printf("wolfSSL_new failure\n");
+      return EXIT_FAILURE;
+  }
+
+  /* Attach wolfSSL to the socket */
+  sgxStatus = enc_wolfSSL_set_fd(id, &ret, ssl, connd);
+  if (sgxStatus != SGX_SUCCESS || ret != SSL_SUCCESS) {
+      printf("wolfSSL_set_fd failure\n");
+      return EXIT_FAILURE;
+  }
+
+  printf("Client connected successfully\n");
+
+  /* Read the client data into our buff array */
+  memset(buff, 0, sizeof(buff));
+  sgxStatus = enc_wolfSSL_read(id, &ret, ssl, buff, sizeof(buff)-1);
+  if(sgxStatus != SGX_SUCCESS || ret == -1) {
+      printf("Server failed to read\n");
+      return EXIT_FAILURE;
+  }
+
+  /* Print to stdout any data the client sends */
+  printf("Client: %s\n", buff);
+
+  /* Write our reply into buff */
+  memset(buff, 0, sizeof(buff));
+  memcpy(buff, "I hear ya fa shizzle!\n", sizeof(buff));
+  len = strnlen(buff, sizeof(buff));
+
+  /* Reply back to the client */
+  sgxStatus = enc_wolfSSL_write(id, &ret, ssl, buff, len);
+  if (sgxStatus != SGX_SUCCESS || ret != len) {
+      printf("Server write failed.\n");
+      return EXIT_FAILURE;
+  }
+
+  /* Cleanup after this connection */
+  enc_wolfSSL_free(id, ssl);      /* Free the wolfSSL object              */
+  close(connd);           /* Close the connection to the client   */
+
+  /* Cleanup and return */
+  sgxStatus = enc_wolfSSL_CTX_free(id, ctx);  /* Free the wolfSSL context object          */
+  sgxStatus = enc_wolfSSL_Cleanup(id, &ret);      /* Cleanup the wolfSSL environment          */
+  close(sockfd);          /* Close the socket listening for clients   */
+  return 0;               /* Return reporting a success               */
 }

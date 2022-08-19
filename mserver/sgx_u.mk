@@ -109,8 +109,7 @@ all: App
 endif
 
 ### Sources ###
-# Server_App_C_Files := untrusted/App.c untrusted/client-tls.c untrusted/server-tls.c
-Server_App_C_Files := untrusted/App.c untrusted/server-tls.c
+Server_App_C_Files := untrusted/App.c
 Server_App_C_Objects := $(Server_App_C_Files:.c=.o)
 
 ## Edger8r related sources ##
