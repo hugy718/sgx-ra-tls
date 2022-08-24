@@ -34,13 +34,6 @@
 
 #include "Server_Enclave_u.h"   /* contains untrusted wrapper functions used to call enclave functions*/
 
-/* Use Debug SGX ? */
-#if _DEBUG
-	#define DEBUG_VALUE SGX_DEBUG_FLAG
-#else
-	#define DEBUG_VALUE 1
-#endif
-
 #define DEFAULT_PORT 11111
 
 int main(int argc, char* argv[]) /* not using since just testing w/ wc_test */
@@ -52,7 +45,7 @@ int main(int argc, char* argv[]) /* not using since just testing w/ wc_test */
 	int sgxStatus = 0;
 	int updated = 0;
   memset(t, 0, sizeof(sgx_launch_token_t));
-	ret = sgx_create_enclave(SERVER_ENCLAVE_FILENAME, DEBUG_VALUE, &t, &updated, &id, NULL);
+	ret = sgx_create_enclave(SERVER_ENCLAVE_FILENAME, SGX_DEBUG_FLAG, &t, &updated, &id, NULL);
 	if (ret != SGX_SUCCESS) {
 		printf("Failed to create Enclave : error %d - %#x.\n", ret, ret);
 		return 1;
@@ -115,7 +108,12 @@ int main(int argc, char* argv[]) /* not using since just testing w/ wc_test */
           server_cert_der_2048, sizeof_server_cert_der_2048, SSL_FILETYPE_ASN1);
   if (sgxStatus != SGX_SUCCESS || ret != SSL_SUCCESS) {
       printf("enc_wolfSSL_CTX_use_certificate_chain_buffer_format failure\n");
-      return EXIT_FAILURE;
+      return EXIT_FAILURE;ifndef DEPS_INCLUDE_DIR
+	$(error DEPS_INCLUDE_DIR is not set. Please set to ratls dependency headers directory)
+endif
+ifndef SGX_WOLFSSL_LIB
+	$(error SGX_WOLFSSL_LIB is not set. Please set to wolfssl library (build for RA_TLS) directory)
+endif
   }
 
   /* Load server key into WOLFSSL_CTX */
@@ -189,7 +187,8 @@ int main(int argc, char* argv[]) /* not using since just testing w/ wc_test */
 
   /* Write our reply into buff */
   memset(buff, 0, sizeof(buff));
-  memcpy(buff, "I hear ya fa shizzle!\n", sizeof(buff));
+  const char msg[] = "I hear ya fa shizzle!\n"; 
+  memcpy(buff, msg, sizeof(msg));
   len = strnlen(buff, sizeof(buff));
 
   /* Reply back to the client */

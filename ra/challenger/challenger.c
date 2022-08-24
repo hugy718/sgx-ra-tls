@@ -16,11 +16,11 @@
 
 #include "ra.h"
 
-#if SGX_SDK
+#ifdef SGX_SDK
 /* SGX SDK does not have this. */
 // an adapted implementation from SGX-Tor.
 // ref: https://github.com/kaist-ina/SGX-Tor/blob/master/SGX-Tor_WIN/TorRealOriginal/compat.c retrieved on 18/12/2021 
-void *memmem(const void *_haystack, size_t hlen, 
+const void *memmem(const void *_haystack, size_t hlen, 
   const void *_needle, size_t nlen) {
   const char *haystack = (const char*)_haystack;
   const char *needle = (const char*)_needle;
@@ -28,13 +28,13 @@ void *memmem(const void *_haystack, size_t hlen,
   char first = *(const char*)needle;
   const char *p = haystack;
   const char *last_possible_start = haystack + hlen - nlen;
-  while ((p = memchr(p, first, last_possible_start + 1 - p))) {
-    if (!memcmp(p, needle, nlen)) return (void*) p;
+  while ((p = memchr(p, first, (size_t) (last_possible_start + 1 - p)))) {
+    if (!memcmp(p, needle, nlen)) return p;
     p++;
   }
   return NULL;
 }
-#endif
+#endif // SGX_SDK
 
 #define OID(N) {0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF8, 0x4D, 0x8A, 0x39, (N)}
 
@@ -53,10 +53,10 @@ static int find_oid
 (
      const unsigned char* ext, size_t ext_len,
      const unsigned char* oid, size_t oid_len,
-     unsigned char** val, size_t* len
+     const uint8_t** val, size_t* len
 )
 {
-    uint8_t* p = memmem(ext, ext_len, oid, oid_len);
+    const uint8_t* p = memmem(ext, ext_len, oid, oid_len);
     if (p == NULL) {
         return -1;
     }
@@ -75,7 +75,7 @@ static int find_oid
     // Now comes the octet string
     assert(p[i++] == 0x04); // tag for octet string
     assert(p[i++] == 0x82); // length encoded in two bytes
-    *len  =  p[i++] << 8;
+    *len  =  (size_t) (p[i++] << 8);
     *len +=  p[i++];
     *val  = &p[i++];
 
@@ -92,7 +92,7 @@ int is_epid_ratls_cert
     uint32_t der_crt_len
 )
 {
-    uint8_t* ext_data;
+    const uint8_t* ext_data;
     size_t ext_data_len;
     int rc;
     
@@ -116,10 +116,10 @@ int is_epid_ratls_cert
 /**
  * @return Returns -1 if OID was not found. Otherwise, returns 1;
  */
-int extract_x509_extension
+static int extract_x509_extension
 (
     const uint8_t* ext,
-    int ext_len,
+    uint32_t ext_len,
     const uint8_t* oid,
     size_t oid_len,
     uint8_t* data,
@@ -127,7 +127,7 @@ int extract_x509_extension
     uint32_t data_max_len
 )
 {
-    uint8_t* ext_data;
+    const uint8_t* ext_data;
     size_t ext_data_len;
     
     int rc = find_oid(ext, ext_len, oid, oid_len, &ext_data, &ext_data_len);
@@ -136,7 +136,7 @@ int extract_x509_extension
     assert(ext_data != NULL);
     assert(ext_data_len <= data_max_len);
     memcpy(data, ext_data, ext_data_len);
-    *data_len = ext_data_len;
+    *data_len = (uint32_t) ext_data_len;
 
     return 1;
 }
@@ -147,7 +147,7 @@ int extract_x509_extension
 void extract_x509_extensions
 (
     const uint8_t* ext,
-    int ext_len,
+    uint32_t ext_len,
     attestation_verification_report_t* attn_report
 )
 {

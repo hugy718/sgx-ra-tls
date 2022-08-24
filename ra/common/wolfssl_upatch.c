@@ -29,20 +29,18 @@ void ocall_print_string(const char *str)
      */ printf("%s", str);
 }
 
-void ocall_low_res_time(int* time)
+unsigned int ocall_low_res_time(void)
 {
     struct timeval tv;
-    if(!time) return;
-    *time = tv.tv_sec;
-    return;
+    return (unsigned int) tv.tv_sec;
 }
 
-size_t ocall_recv(int sockfd, void *buf, size_t len, int flags)
+ssize_t ocall_recv(int sockfd, void *buf, size_t len, int flags)
 {
     return recv(sockfd, buf, len, flags);
 }
 
-size_t ocall_send(int sockfd, const void *buf, size_t len, int flags)
+ssize_t ocall_send(int sockfd, const void *buf, size_t len, int flags)
 {
     return send(sockfd, buf, len, flags);
 }

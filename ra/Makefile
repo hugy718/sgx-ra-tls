@@ -61,8 +61,8 @@ UCommon_C_Flags := $(Common_C_Cpp_Warnings) $(Common_C_Warnings) $(UCommon_C_Cpp
 DEPS_Include_Paths := -I$(PROJECT_ROOT)/deps/local/include
 RATLS_Include_Paths := -I./include
 
-TWolfssl_C_Extra_Flags := -DSGX_SDK -DWOLFSSL_SGX -DWOLFSSL_SGX_ATTESTATION -DUSER_TIME -DWOLFSSL_CERT_EXT -DFP_MAX_BITS=8192
-UWolfssl_C_Extra_Flags := -DWOLFSSL_SGX -DUSE_WOLFSSL
+TWolfssl_C_Extra_Flags := -DSGX_SDK -DWOLFSSL_SGX -DUSER_TIME -DWOLFSSL_SGX_ATTESTATION -DWOLFSSL_KEY_GEN -DWOLFSSL_CERT_GEN -DWOLFSSL_CERT_EXT -DFP_MAX_BITS=8192
+UWolfssl_C_Extra_Flags := -DWOLFSSL_SGX -DWOLFSSL_SGX_ATTESTATION -DWOLFSSL_ALWAYS_VERIFY_CB -DKEEP_PEER_CERT -DWOLFSSL_CERT_EXT
 
 TCommon_C_Flags += $(TWolfssl_C_Extra_Flags) $(TSGX_Include_Paths) $(DEPS_Include_Paths) $(RATLS_Include_Paths)
 

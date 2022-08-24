@@ -1,5 +1,7 @@
 #include "uchallenger.h"
 
+#include <stdio.h>
+
 #include "ra.h"
 #include "challenger_internal.h"
 

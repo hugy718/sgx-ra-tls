@@ -39,24 +39,24 @@ void generate_x509
 
     memcpy(crt.iasAttestationReport, attn_report->ias_report,
            attn_report->ias_report_len);
-    crt.iasAttestationReportSz = attn_report->ias_report_len;
+    crt.iasAttestationReportSz = (int) attn_report->ias_report_len;
 
     memcpy(crt.iasSigCACert, attn_report->ias_sign_ca_cert,
            attn_report->ias_sign_ca_cert_len);
-    crt.iasSigCACertSz = attn_report->ias_sign_ca_cert_len;
+    crt.iasSigCACertSz = (int) attn_report->ias_sign_ca_cert_len;
 
     memcpy(crt.iasSigCert, attn_report->ias_sign_cert,
            attn_report->ias_sign_cert_len);
-    crt.iasSigCertSz = attn_report->ias_sign_cert_len;
+    crt.iasSigCertSz = (int) attn_report->ias_sign_cert_len;
 
     memcpy(crt.iasSig, attn_report->ias_report_signature,
            attn_report->ias_report_signature_len);
-    crt.iasSigSz = attn_report->ias_report_signature_len;
+    crt.iasSigSz = (int) attn_report->ias_report_signature_len;
 
     RNG    rng;
     wc_InitRng(&rng);
     
-    int certSz = wc_MakeSelfCert(&crt, der_crt, *der_crt_len, key, &rng);
+    int certSz = wc_MakeSelfCert(&crt, der_crt, (word32) *der_crt_len, key, &rng);
     assert(certSz > 0);
     *der_crt_len = certSz;
 }
@@ -86,7 +86,7 @@ static void wolfssl_create_key_and_x509
     assert(derSz <= (int) *der_key_len);
 
     *der_key_len = derSz;
-    memcpy(der_key, der, derSz);
+    memcpy(der_key, der, (size_t) derSz);
 
     /* Generate certificate */
     sgx_report_data_t report_data = {0, };

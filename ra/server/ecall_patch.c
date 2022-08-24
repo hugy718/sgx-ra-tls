@@ -48,11 +48,11 @@ int enc_wolfSSL_connect(WOLFSSL* ssl)
     return wolfSSL_connect(ssl);
 }
 
-int enc_wolfSSL_write(WOLFSSL* ssl, const void* in, int sz)
+int enc_wolfSSL_write(WOLFSSL* ssl, const void* in, size_t sz)
 {
     if(sgx_is_within_enclave(ssl, wolfSSL_GetObjectSize()) != 1)
         abort();
-    return wolfSSL_write(ssl, in, sz);
+    return wolfSSL_write(ssl, in, (int) sz);
 }
 
 int enc_wolfSSL_get_error(WOLFSSL* ssl, int ret)
@@ -62,11 +62,11 @@ int enc_wolfSSL_get_error(WOLFSSL* ssl, int ret)
     return wolfSSL_get_error(ssl, ret);
 }
 
-int enc_wolfSSL_read(WOLFSSL* ssl, void* data, int sz)
+int enc_wolfSSL_read(WOLFSSL* ssl, void* data, size_t sz)
 {
     if(sgx_is_within_enclave(ssl, wolfSSL_GetObjectSize()) != 1)
         abort();
-    return wolfSSL_read(ssl, data, sz);
+    return wolfSSL_read(ssl, data, (int) sz);
 }
 
 void enc_wolfSSL_free(WOLFSSL* ssl)
@@ -98,4 +98,9 @@ void enc_wolfSSL_CTX_set_ratls_verify(WOLFSSL_CTX* ctx) {
   // enforcing the check of clients certificate
   wolfSSL_CTX_set_verify(ctx,
     SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, cert_verify_callback);
+}
+
+WOLFSSL_METHOD* enc_wolfTLSv1_2_server_method(void)
+{
+    return wolfTLSv1_2_server_method();
 }

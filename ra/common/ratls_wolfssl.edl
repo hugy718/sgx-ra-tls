@@ -1,8 +1,8 @@
 enclave {
   untrusted {
     void ocall_print_string([in, string] const char* str);
-    void ocall_low_res_time([out] int* time);
-    size_t ocall_recv(int sockfd, [out, size=len] void *buf, size_t len, int flags) propagate_errno;
-    size_t ocall_send(int sockfd, [in, size=len] const void *buf, size_t len, int flags) propagate_errno;
+    unsigned int ocall_low_res_time();
+    long int ocall_recv(int sockfd, [out, size=len] void *buf, size_t len, int flags) propagate_errno;
+    long int ocall_send(int sockfd, [in, size=len] const void *buf, size_t len, int flags) propagate_errno;
   };
 };

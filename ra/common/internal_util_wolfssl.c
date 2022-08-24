@@ -24,6 +24,6 @@ void sha256_rsa_pubkey
     
     Sha256 sha;
     wc_InitSha256(&sha);
-    wc_Sha256Update(&sha, buf, pub_rsa_key_der_len);
+    wc_Sha256Update(&sha, buf, (word32) pub_rsa_key_der_len);
     wc_Sha256Final(&sha, hash);
 }

@@ -38,10 +38,10 @@ static void extract_certificates_from_response_header
     field_begin += strlen(response_header_name);
     const char http_line_break[] = "\r\n";
     char *field_end = memmem(field_begin,
-                             header_len - (field_begin - header),
+                             header_len - (size_t) (field_begin - header),
                              http_line_break,
                              strlen(http_line_break));
-    size_t field_len = field_end - field_begin;
+    int field_len = (int) (field_end - field_begin);
 
     // Remove urlencoding from x-iasreport-signing-certificate field.
     int unescaped_len = 0;
@@ -51,30 +51,32 @@ static void extract_certificates_from_response_header
                                          &unescaped_len);
     
     char* cert_begin = memmem(unescaped,
-                              unescaped_len,
+                              (size_t) unescaped_len,
                               pem_marker_begin,
                               strlen(pem_marker_begin));
     assert(cert_begin != NULL);
-    char* cert_end = memmem(unescaped, unescaped_len,
+    char* cert_end = memmem(unescaped, (size_t) unescaped_len,
                             pem_marker_end, strlen(pem_marker_end));
     assert(cert_end != NULL);
-    uint32_t cert_len = cert_end - cert_begin + strlen(pem_marker_end);
+    uint32_t cert_len = (uint32_t) (cert_end - cert_begin)
+      + (uint32_t) strlen(pem_marker_end);
 
     assert(cert_len <= sizeof(attn_report->ias_sign_cert));
     memcpy(attn_report->ias_sign_cert, cert_begin, cert_len);
     attn_report->ias_sign_cert_len = cert_len;
     
     cert_begin = memmem(cert_end,
-                        unescaped_len - (cert_end - unescaped),
+                        (size_t) (unescaped_len - (cert_end - unescaped)),
                         pem_marker_begin,
                         strlen(pem_marker_begin));
     assert(cert_begin != NULL);
     cert_end = memmem(cert_begin,
-                     unescaped_len - (cert_begin - unescaped),
+                     (size_t) (unescaped_len - (cert_begin - unescaped)),
                      pem_marker_end,
                      strlen(pem_marker_end));
     assert(cert_end != NULL);
-    cert_len = cert_end - cert_begin + strlen(pem_marker_end);
+    cert_len = (uint32_t) (cert_end - cert_begin)
+      + (uint32_t) strlen(pem_marker_end);
 
     assert(cert_len <= sizeof(attn_report->ias_sign_ca_cert));
     memcpy((char*) attn_report->ias_sign_ca_cert, cert_begin, cert_len);
@@ -102,14 +104,14 @@ static void parse_response_header
     assert(sig_begin != NULL);
     sig_begin += strlen(sig_tag);
     char* sig_end = memmem(sig_begin,
-                           header_len - (sig_begin - header),
+                           header_len - (size_t) (sig_begin - header),
                            "\r\n",
                            strlen("\r\n"));
     assert(sig_end);
 
     assert((size_t) (sig_end - sig_begin) <= signature_max_size);
-    memcpy(signature, sig_begin, sig_end - sig_begin);
-    *signature_size = sig_end - sig_begin;
+    memcpy(signature, sig_begin, (size_t) (sig_end - sig_begin));
+    *signature_size = (uint32_t) (sig_end - sig_begin);
 }
 
 /** Turns a binary quote into an attestation verification report.
@@ -145,10 +147,10 @@ void obtain_attestation_verification_report
         
     const char json_template[] = "{\"isvEnclaveQuote\":\"%s\"}";
     unsigned char quote_base64[quote_size * 2];
-    uint32_t quote_base64_len = sizeof(quote_base64);
+    uint32_t quote_base64_len = (uint32_t) sizeof(quote_base64);
     char json[quote_size * 2];
 
-    base64_encode((uint8_t*) quote, quote_size,
+    base64_encode((const uint8_t*) quote, quote_size,
                   quote_base64, &quote_base64_len);
 
     snprintf(json, sizeof(json), json_template, quote_base64);
@@ -170,7 +172,7 @@ void obtain_attestation_verification_report
 
     assert(sizeof(attn_report->ias_report) >= body.len);
     memcpy(attn_report->ias_report, body.data, body.len);
-    attn_report->ias_report_len = body.len;
+    attn_report->ias_report_len = (uint32_t) body.len;
 
     extract_certificates_from_response_header(curl,
                                               header.data, header.len,

@@ -18,28 +18,17 @@ int is_epid_ratls_cert
     uint32_t der_crt_len
 );
 
-int extract_x509_extension
-(
-    const uint8_t* ext,
-    int ext_len,
-    const uint8_t* oid,
-    size_t oid_len,
-    uint8_t* data,
-    uint32_t* data_len,
-    uint32_t data_max_len
-);
-
 void extract_x509_extensions
 (
     const uint8_t* ext,
-    int ext_len,
+    uint32_t ext_len,
     attestation_verification_report_t* attn_report
 );
 
 void get_quote_from_report
 (
     const uint8_t* report /* in */,
-    const int report_len  /* in */,
+    const uint32_t report_len  /* in */,
     sgx_quote_t* quote
 );
 

@@ -45,7 +45,6 @@ endif
 ### Intel(R) SGX SDK Settings ###
 
 ### Project Settings ###
-DEPS_LIBS_DIR="../deps/local/lib"
 SGX_RA_TLS_INSTALL_DIR ?= $(abspath ../install)
 SGX_RA_TLS_Include_Path := $(SGX_RA_TLS_INSTALL_DIR)/include
 SGX_RA_TLS_Lib_Path := $(SGX_RA_TLS_INSTALL_DIR)/lib
@@ -58,8 +57,8 @@ Common_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes -I. \
 										-Wjump-misses-init -Wstrict-prototypes \
 										-Wunsuffixed-float-constants
 # This flag needed for some wolfssl header
-Wolfssl_C_Extra_Flags := -DWOLFSSL_SGX 
-Tclient_App_C_Flags := $(Common_C_Cpp_Flags) $(Wolfssl_C_Extra_Flags) -Iuntrusted -I$(SGX_SDK)/include -I$(SGX_RA_TLS_Include_Path) -I$(DEPS_INCLUDE_DIR)
+Wolfssl_C_Extra_Flags := -DWOLFSSL_SGX -DWOLFSSL_SGX_ATTESTATION -DWOLFSSL_ALWAYS_VERIFY_CB -DKEEP_PEER_CERT -DWOLFSSL_CERT_EXT
+Tclient_App_C_Flags := $(Common_C_Cpp_Flags) $(Wolfssl_C_Extra_Flags) -Iuntrusted -I$(SGX_SDK)/include -I$(SGX_RA_TLS_Include_Path)
 
 # Three configuration modes - Debug, prerelease, release
 #   Debug - Macro DEBUG enabled.
@@ -76,9 +75,9 @@ endif
 
 ### Linking setting ###
 Tclient_App_Link_Flags := $(SGX_COMMON_CFLAGS) \
-	-L$(SGX_RA_TLS_LIB) -lratls_attester_u -lratls_common_u\
+	-L$(SGX_RA_TLS_Lib_Path) -lratls_attester_u -lratls_common_u\
 	-L$(SGX_LIBRARY_PATH)	-l$(Urts_Library_Name) \
-	-L$(DEPS_LIBS_DIR) $(DEPS_LIBS_DIR)/libcurl-wolfssl.a $(DEPS_LIBS_DIR)/libwolfssl.a \
+	-L$(SGX_RA_TLS_Lib_Path) -l:libcurl-wolfssl.a -l:libwolfssl.a \
 	-lpthread -lz -lm
 
 ## Add sgx_uae_service library to link ##
@@ -107,7 +106,6 @@ all: App
 endif
 
 ### Sources ###
-# Tclient_App_C_Files := untrusted/App.c untrusted/client-tls.c untrusted/server-tls.c
 Tclient_App_C_Files := untrusted/tclient.c
 Tclient_App_C_Objects := $(Tclient_App_C_Files:.c=.o)
 

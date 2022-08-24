@@ -1,11 +1,5 @@
 enclave {
-	include "wolfssl/ssl.h"
-
   from "attester.edl" import *;
   from "ratls_wolfssl.edl" import *;
   from "server.edl" import *;
-
-  trusted {
-    public WOLFSSL_METHOD* enc_wolfTLSv1_2_server_method(void);
-  };
 };

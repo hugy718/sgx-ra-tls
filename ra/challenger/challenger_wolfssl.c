@@ -22,7 +22,7 @@ extern unsigned int ias_sign_ca_cert_der_len;
 void get_quote_from_report
 (
     const uint8_t* report /* in */,
-    const int report_len  /* in */,
+    const uint32_t report_len  /* in */,
     sgx_quote_t* quote
 )
 {
@@ -39,7 +39,7 @@ void get_quote_from_report
     const char* p_end = strchr(p_begin, '"');
     assert(p_end != NULL);
 
-    const int quote_base64_len = p_end - p_begin;
+    const uint32_t quote_base64_len = (uint32_t) (p_end - p_begin);
     uint8_t* quote_bin = malloc(quote_base64_len);
     uint32_t quote_bin_len = quote_base64_len;
 
@@ -119,12 +119,11 @@ int verify_ias_report_signature
 
     uint8_t der[4096];
     int der_len;
-    der_len = wolfSSL_CertPemToDer(attn_report->ias_sign_cert, attn_report->ias_sign_cert_len,
-                                   der, sizeof(der),
-                                   CERT_TYPE);
+    der_len = wolfSSL_CertPemToDer(attn_report->ias_sign_cert,
+      (int) attn_report->ias_sign_cert_len, der, sizeof(der), CERT_TYPE);
     assert(der_len > 0);
     
-    InitDecodedCert(&crt, der, der_len, NULL);
+    InitDecodedCert(&crt, der, (word32) der_len, NULL);
     InitSignatureCtx(&crt.sigCtx, NULL, INVALID_DEVID);
     ret = ParseCertRelative(&crt, CERT_TYPE, NO_VERIFY, 0);
     assert(ret == 0);
@@ -187,11 +186,10 @@ int verify_ias_certificate_chain(attestation_verification_report_t* attn_report)
  *
  * @return 0 if verified successfully, 1 otherwise.
  */
-static
-int verify_enclave_quote_status
+static int verify_enclave_quote_status
 (
-    const char* ias_report,
-    int   ias_report_len
+    const uint8_t* ias_report,
+    uint32_t   ias_report_len
 )
 {
     // Move ias_report into \0 terminated buffer such that we can work
@@ -260,7 +258,8 @@ int epid_verify_sgx_cert_extensions
     ret = ParseCertRelative(&crt, CERT_TYPE, NO_VERIFY, 0);
     assert(ret == 0);
     
-    extract_x509_extensions(crt.extensions, crt.extensionsSz, &attn_report);
+    extract_x509_extensions(crt.extensions, (uint32_t) crt.extensionsSz,
+      &attn_report);
 
     /* Base64 decode attestation report signature. */
     uint8_t sig_base64[sizeof(attn_report.ias_report_signature)];
@@ -275,7 +274,7 @@ int epid_verify_sgx_cert_extensions
     ret = verify_ias_report_signature(&attn_report);
     assert(ret == 0);
 
-    ret = verify_enclave_quote_status((const char*) attn_report.ias_report,
+    ret = verify_enclave_quote_status(attn_report.ias_report,
                                       attn_report.ias_report_len);
     assert(ret == 0);
     
@@ -293,7 +292,7 @@ int epid_verify_sgx_cert_extensions
 
 int cert_verify_callback(int preverify, WOLFSSL_X509_STORE_CTX* store) {
 
-    printf("Verifying SGX certificate extensions ... %s\n");
+    printf("Verifying SGX certificate extensions ... \n");
     (void) preverify;
 
     int ret = verify_sgx_cert_extensions(store->certs->buffer,

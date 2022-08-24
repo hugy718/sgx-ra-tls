@@ -1,11 +1,5 @@
 #define CLIENT_ENCLAVE_FILENAME "Tclient_Enclave.signed.so"
 
-#if _DEBUG
-  #define DEBUG_VALUE SGX_DEBUG_FLAG
-#else
-  #define DEBUG_VALUE 1
-#endif
-
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -64,7 +58,7 @@ int main(int argc, char* argv[]) {
   sgx_status_t sgxStatus = 0;
   int updated = 0;
   memset(t, 0, sizeof(sgx_launch_token_t));
-  int ret = sgx_create_enclave(CLIENT_ENCLAVE_FILENAME, DEBUG_VALUE, 
+  int ret = sgx_create_enclave(CLIENT_ENCLAVE_FILENAME, SGX_DEBUG_FLAG, 
     &t, &updated, &id, NULL);
   if (ret != SGX_SUCCESS) {
     printf("Failed to create Enclave : error %d - %#x.\n", ret, ret);

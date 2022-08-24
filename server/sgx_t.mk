@@ -52,7 +52,6 @@ SGX_RA_TLS_Include_Path := $(SGX_RA_TLS_INSTALL_DIR)/include
 SGX_RA_TLS_Lib_Path := $(SGX_RA_TLS_INSTALL_DIR)/lib
 
 SGX_Include_Paths := -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc
-Wolfssl_Include_Paths := -I$(DEPS_INCLUDE_DIR)
 
 Flags_Just_For_C := -Wno-implicit-function-declaration -std=c11
 Common_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpie -fstack-protector -fno-builtin -fno-builtin-printf -I. \
@@ -62,17 +61,16 @@ Common_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpie -
                     -Wcast-align -Wcast-qual -Wconversion -Wredundant-decls \
 										-Wjump-misses-init -Wstrict-prototypes \
 										-Wunsuffixed-float-constants
-Wolfssl_C_Extra_Flags := -DSGX_SDK -DWOLFSSL_SGX -DWOLFSSL_SGX_ATTESTATION -DUSER_TIME -DWOLFSSL_CERT_EXT
+Wolfssl_C_Extra_Flags := -DSGX_SDK -DWOLFSSL_SGX
+Wolfssl_C_Extra_Flags += -DUSER_TIME -DWOLFSSL_SGX_ATTESTATION -DWOLFSSL_KEY_GEN -DWOLFSSL_CERT_GEN -DWOLFSSL_CERT_EXT -DFP_MAX_BITS=8192
 
-Server_Enclave_C_Flags := $(Flags_Just_For_C) $(Common_C_Cpp_Flags) $(Wolfssl_C_Extra_Flags) -Itrusted $(Wolfssl_Include_Paths) $(SGX_Include_Paths) -I$(SGX_RA_TLS_Include_Path)
+Server_Enclave_C_Flags := $(Flags_Just_For_C) $(Common_C_Cpp_Flags) $(Wolfssl_C_Extra_Flags) -Itrusted $(SGX_Include_Paths) -I$(SGX_RA_TLS_Include_Path)
 
 Crypto_Library_Name := sgx_tcrypto
 
 Server_Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) \
 	-Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) \
-	-L$(SGX_RA_TLS_Lib_Path) -lratls_ext \
-	-L$(SGX_RA_TLS_Lib_Path) -lratls_attester_t -lratls_challenger_t -lratls_common_t\
-	-L$(SGX_WOLFSSL_LIB) -lwolfssl.sgx.static.lib \
+	-L$(SGX_RA_TLS_Lib_Path) -lratls_ext -lratls_attester_t -lratls_challenger_t -lratls_common_t -lwolfssl.sgx.static.lib \
 	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
 	-Wl,--start-group -lsgx_tstdc -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
 	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
@@ -98,9 +96,6 @@ all: Server_Enclave.signed.so
 endif
 
 ### Sources ###
-Server_Enclave_C_Files := trusted/Server_Enclave.c
-Server_Enclave_C_Objects := $(Server_Enclave_C_Files:.c=.o)
-
 ### Edger8r related sourcs ###
 trusted/Server_Enclave_t.c: $(SGX_EDGER8R) ./trusted/Server_Enclave.edl
 	cd ./trusted && $(SGX_EDGER8R) --trusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path $(SGX_RA_TLS_Include_Path)
@@ -111,12 +106,8 @@ trusted/Server_Enclave_t.o: ./trusted/Server_Enclave_t.c
 	@echo "CC   <=  $<"
 ### Edger8r related sourcs ###
 
-trusted/%.o: trusted/%.c
-	$(CC) $(Server_Enclave_C_Flags) -c $< -o $@
-	@echo "CC  <=  $<"
-
 ### Enclave Image ###
-Server_Enclave.so: trusted/Server_Enclave_t.o $(Server_Enclave_C_Objects)
+Server_Enclave.so: trusted/Server_Enclave_t.o
 	$(CXX) $^ -o $@ $(Server_Enclave_Link_Flags)
 	@echo "LINK =>  $@"
 
@@ -128,4 +119,4 @@ Server_Enclave.signed.so: Server_Enclave.so
 
 ### Clean command ###
 clean:
-	rm -f Server_Enclave.* trusted/Server_Enclave_t.*  $(Server_Enclave_C_Objects)
+	rm -f Server_Enclave.* trusted/Server_Enclave_t.*

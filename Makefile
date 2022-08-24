@@ -8,7 +8,7 @@ CFLAGS+=-std=gnu99 -I. -I$(SGX_SDK)/include -Ideps/local/include -fPIC
 ## error flags ##
 CFLAGSERRORS=-Wall -Wextra -Wwrite-strings -Wshadow -Werror
 ## wolfssl build flags ##
-CFLAGS+=$(CFLAGSERRORS) -g -O0 -DWOLFSSL_SGX_ATTESTATION -DWOLFSSL_CERT_EXT
+CFLAGS+=$(CFLAGSERRORS) -g -O2
 ## challenger checks if group out of data is stated in IAS report ##
 CFLAGS+=-DSGX_GROUP_OUT_OF_DATE
 ### Variable Settings ###
@@ -28,13 +28,13 @@ deps/wolfssl/configure:
 	cd deps/wolfssl && patch -p1 < ../../ra/wolfssl.patch
 	cd deps/wolfssl && ./autogen.sh
 
-WOLFSSL_CFLAGS+=-DWOLFSSL_SGX_ATTESTATION -DWOLFSSL_ALWAYS_VERIFY_CB -DKEEP_PEER_CERT
+WOLFSSL_CFLAGS+=-DWOLFSSL_SGX_ATTESTATION -DWOLFSSL_ALWAYS_VERIFY_CB -DKEEP_PEER_CERT -DWOLFSSL_CERT_EXT
 WOLFSSL_CONFIGURE_FLAGS+=--prefix=$(shell readlink -f deps/local) --enable-writedup --enable-static --enable-keygen --enable-certgen --enable-certext --with-pic --disable-examples --disable-crypttests --enable-aesni --enable-tlsv10
 ifdef DEBUG
 WOLFSSL_CFLAGS+=--enable-debug
 endif
 
-deps/local/lib/libwolfssl.a: CFLAGS+= $(WOLFSSL_CFLAGS)
+CFLAGS+= $(WOLFSSL_CFLAGS) 
 deps/local/lib/libwolfssl.a: deps/wolfssl/configure
 	cd deps/wolfssl && CC=gcc-5 CFLAGS="$(CFLAGS)" ./configure $(WOLFSSL_CONFIGURE_FLAGS)
 	cd deps/wolfssl && $(MAKE) install
@@ -84,23 +84,20 @@ deps/local/lib/libwolfssl.sgx.static.lib.a:
 	mkdir -p deps/local/lib && cp deps/wolfssl/IDE/LINUX-SGX/libwolfssl.sgx.static.lib.a deps/local/lib
 
 ### Build server ###
-# enclave-app: deps/local/lib/libwolfssl.sgx.static.lib.a install
 enclave-app: install
-	$(MAKE) -C server SGX_MODE=HW SGX_DEBUG=0 SGX_PRERELEASE=1 SGX_WOLFSSL_LIB=$(shell readlink -f deps/local/lib) SGX_SDK=$(SGX_SDK) DEPS_INCLUDE_DIR=$(shell readlink -f deps/local/include) SGX_RA_TLS_LIB=$(shell readlink -f lib/)
+	$(MAKE) -C server SGX_MODE=HW SGX_DEBUG=0 SGX_PRERELEASE=1 SGX_SDK=$(SGX_SDK) SGX_RA_TLS_INSTALL_DIR=$(abspath install)
 
 server: enclave-app mserver
 ### Build server ###
 
 ### Build server with mutual attestation ###
-# mserver: deps/local/lib/libwolfssl.sgx.static.lib.a install
 mserver: install
-	$(MAKE) -C mserver SGX_MODE=HW SGX_DEBUG=0 SGX_PRERELEASE=1 SGX_WOLFSSL_LIB=$(shell readlink -f deps/local/lib) SGX_SDK=$(SGX_SDK) DEPS_INCLUDE_DIR=$(shell readlink -f deps/local/include) SGX_RA_TLS_LIB=$(shell readlink -f lib/)
+	$(MAKE) -C mserver SGX_MODE=HW SGX_DEBUG=0 SGX_PRERELEASE=1 SGX_SDK=$(SGX_SDK) SGX_RA_TLS_INSTALL_DIR=$(abspath install)
 ### Build server with mutual attestation ###
 
 ### Build client with mutual attestation ###
-# mtclient: deps/local/lib/libwolfssl.sgx.static.lib.a install
 mtclient: install
-	$(MAKE) -C mtclient SGX_MODE=HW SGX_DEBUG=0 SGX_PRERELEASE=1 SGX_WOLFSSL_LIB=$(shell readlink -f deps/local/lib) SGX_SDK=$(SGX_SDK) DEPS_INCLUDE_DIR=$(shell readlink -f deps/local/include) SGX_RA_TLS_LIB=$(shell readlink -f lib/)
+	$(MAKE) -C mtclient SGX_MODE=HW SGX_DEBUG=0 SGX_PRERELEASE=1 SGX_SDK=$(SGX_SDK) SGX_RA_TLS_INSTALL_DIR=$(abspath install)
 ### Build client with mutual attestation ###
 
 

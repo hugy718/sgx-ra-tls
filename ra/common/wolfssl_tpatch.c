@@ -15,29 +15,23 @@ void printf(const char *fmt, ...)
     ocall_print_string(buf);
 }
 
-int LowResTimer(void) /* low_res timer */
+unsigned int LowResTimer(void) /* low_res timer */
 {
-    int time;
+    unsigned int time;
     ocall_low_res_time(&time);
     return time;
 }
 
-size_t recv(int sockfd, void *buf, size_t len, int flags)
+long int recv(int sockfd, void *buf, size_t len, int flags)
 {
-    size_t ret;
-    // int sgxStatus;
-    // sgxStatus = ocall_recv(&ret, sockfd, buf, len, flags);
-    ocall_recv(&ret, sockfd, buf, len, flags);
-    return ret;
+    long int ret;
+    return (ocall_recv(&ret, sockfd, buf, len, flags) == -1) ? -1 : ret;
 }
 
-size_t send(int sockfd, const void *buf, size_t len, int flags)
+long int send(int sockfd, const void *buf, size_t len, int flags)
 {
-    size_t ret;
-    // int sgxStatus;
-    // sgxStatus = ocall_send(&ret, sockfd, buf, len, flags);
-    ocall_send(&ret, sockfd, buf, len, flags);
-    return ret;
+    long int ret;
+    return (ocall_send(&ret, sockfd, buf, len, flags) == -1) ? -1 : ret;
 }
 
 // gy211216 moved from wolfssl-ra-attester.c

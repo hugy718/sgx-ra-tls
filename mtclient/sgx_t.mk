@@ -52,7 +52,6 @@ SGX_RA_TLS_Include_Path := $(SGX_RA_TLS_INSTALL_DIR)/include
 SGX_RA_TLS_Lib_Path := $(SGX_RA_TLS_INSTALL_DIR)/lib
 
 SGX_Include_Paths := -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc
-Wolfssl_Include_Paths := -I$(DEPS_INCLUDE_DIR)
 
 Flags_Just_For_C := -Wno-implicit-function-declaration -std=c11
 Common_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpie -fstack-protector -fno-builtin -fno-builtin-printf -I. \
@@ -62,16 +61,16 @@ Common_C_Cpp_Flags := $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpie -
                     -Wcast-align -Wcast-qual -Wconversion -Wredundant-decls \
 										-Wjump-misses-init -Wstrict-prototypes \
 										-Wunsuffixed-float-constants
-Wolfssl_C_Extra_Flags := -DSGX_SDK -DWOLFSSL_SGX -DWOLFSSL_SGX_ATTESTATION -DUSER_TIME -DWOLFSSL_CERT_EXT
+Wolfssl_C_Extra_Flags := -DSGX_SDK -DWOLFSSL_SGX
+Wolfssl_C_Extra_Flags += -DUSER_TIME -DWOLFSSL_SGX_ATTESTATION -DWOLFSSL_KEY_GEN -DWOLFSSL_CERT_GEN -DWOLFSSL_CERT_EXT -DFP_MAX_BITS=8192
 
-Tclient_Enclave_C_Flags := $(Flags_Just_For_C) $(Common_C_Cpp_Flags) $(Wolfssl_C_Extra_Flags) -Itrusted $(Wolfssl_Include_Paths) $(SGX_Include_Paths) -I$(SGX_RA_TLS_Include_Path)
+Tclient_Enclave_C_Flags := $(Flags_Just_For_C) $(Common_C_Cpp_Flags) $(Wolfssl_C_Extra_Flags) -Itrusted $(SGX_Include_Paths) -I$(SGX_RA_TLS_Include_Path)
 
 Crypto_Library_Name := sgx_tcrypto
 
 Tclient_Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) \
 	-Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) \
-	-L$(SGX_RA_TLS_Lib_Path) -lratls_attester_t -lratls_challenger_t -lratls_common_t\
-	-L$(SGX_WOLFSSL_LIB) -lwolfssl.sgx.static.lib \
+	-L$(SGX_RA_TLS_Lib_Path) -lratls_attester_t -lratls_challenger_t -lratls_common_t -lwolfssl.sgx.static.lib \
 	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
 	-Wl,--start-group -lsgx_tstdc -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
 	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
