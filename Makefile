@@ -78,8 +78,7 @@ clients: wolfssl-client mtclient
 ### Build client ###
 
 ### Build wolfssl Linux SGX support ###
-# deps/local/lib/libwolfssl.sgx.static.lib.a: deps/local/lib/libwolfssl.a
-deps/local/lib/libwolfssl.sgx.static.lib.a:
+deps/local/lib/libwolfssl.sgx.static.lib.a: deps/local/lib/libwolfssl.a
 	cd deps/wolfssl/IDE/LINUX-SGX && make -f sgx_t_static.mk CFLAGS="-DUSER_TIME -DWOLFSSL_SGX_ATTESTATION -DWOLFSSL_KEY_GEN -DWOLFSSL_CERT_GEN -DWOLFSSL_CERT_EXT -DFP_MAX_BITS=8192"
 	mkdir -p deps/local/lib && cp deps/wolfssl/IDE/LINUX-SGX/libwolfssl.sgx.static.lib.a deps/local/lib
 
