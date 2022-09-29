@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "challenger_wolfssl.h"
+#include "tattester_wolfssl.h"
 
 void enc_wolfSSL_Debugging_ON(void)
 {
