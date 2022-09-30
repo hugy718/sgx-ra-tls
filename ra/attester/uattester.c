@@ -129,17 +129,17 @@ void obtain_attestation_verification_report
     int ret;
   
     char url[512];
-    ret = snprintf(url, sizeof(url), "https://%s/attestation/v4/report",
+    ret = snprintf(url, sizeof(url), "https://%s/attestation/v4/report\0",
                    opts->ias_server);
     assert(ret < (int) sizeof(url));
     
     char buf[128];
-    int rc = snprintf(buf, sizeof(buf), "Ocp-Apim-Subscription-Key: %.32s",
+    int rc = snprintf(buf, sizeof(buf), "Ocp-Apim-Subscription-Key: %.32s\0",
                       opts->subscription_key);
     assert(rc < (int) sizeof(buf));
 
     struct curl_slist *request_headers =
-        curl_slist_append(NULL, "Content-Type: application/json");
+        curl_slist_append(NULL, "Content-Type: application/json\0");
     request_headers = curl_slist_append(request_headers, buf);
 #ifndef NDEBUG
     printf("ocp-apim content: %s\n", buf);

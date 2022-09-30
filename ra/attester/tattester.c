@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "sgx_error.h"
+#include "sgx_utils.h"
 
 /* Trusted portion (called from within the enclave) to do remote
    attestation with the SGX SDK.  */

@@ -15,6 +15,14 @@ size_t accumulate_function(void *ptr, size_t size, size_t nmemb, void *userdata)
     return size * nmemb;
 }
 
+static void curl_ra_print_time() {
+  struct timeval t;
+  gettimeofday(&t, 0);
+  printf("timing(curl ra): %llu\n",
+    (unsigned long long) t.tv_sec*1000*1000
+    + (unsigned long long) t.tv_usec);
+}
+
 void http_get
 (
     CURL* curl,
@@ -41,7 +49,22 @@ void http_get
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request_body);
     }
 
+    curl_ra_print_time();
     CURLcode res = curl_easy_perform(curl);
+    curl_ra_print_time();
+
+    if (res != CURLE_OK) {
+      printf("sent url: %s\n", url);
+      do {
+        printf("sent header: %s\n", request_headers->data);
+        request_headers = request_headers->next;
+      } while (request_headers);
+      printf("sent body: %s\n", request_body);
+      printf("resp header: %.*s\n", header->len, header->data);
+      printf("resp body: %.*s\n", body->len, body->data);
+      printf("curl code: %d\n", res);
+      fflush(stdout);
+    }
     assert(res == CURLE_OK);
 }
 
