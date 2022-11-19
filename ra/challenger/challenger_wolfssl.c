@@ -16,10 +16,142 @@
 #include "challenger_internal.h"
 #include "common/internal_util_wolfssl.h"
 
+// ecdsa
+#define SGX_SDK 1
+#include "sgx_ql_quote.h"
+#include "sgx_utils.h"
+#include "sgx_error.h"
+
 extern unsigned char ias_sign_ca_cert_der[];
 extern unsigned int ias_sign_ca_cert_der_len;
 
-void get_quote_from_report
+#ifdef SGX_SDK
+/* SGX SDK does not have this. */
+// an adapted implementation from SGX-Tor.
+// ref: https://github.com/kaist-ina/SGX-Tor/blob/master/SGX-Tor_WIN/TorRealOriginal/compat.c retrieved on 18/12/2021 
+const void *memmem(const void *_haystack, size_t hlen, 
+  const void *_needle, size_t nlen) {
+  const char *haystack = (const char*)_haystack;
+  const char *needle = (const char*)_needle;
+  if (nlen > hlen) return NULL;
+  char first = *(const char*)needle;
+  const char *p = haystack;
+  const char *last_possible_start = haystack + hlen - nlen;
+  while ((p = memchr(p, first, (size_t) (last_possible_start + 1 - p)))) {
+    if (!memcmp(p, needle, nlen)) return p;
+    p++;
+  }
+  return NULL;
+}
+#endif // SGX_SDK
+
+#define OID(N) {0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF8, 0x4D, 0x8A, 0x39, (N)}
+
+const uint8_t ias_response_body_oid[]    = OID(0x02);
+const uint8_t ias_root_cert_oid[]        = OID(0x03);
+const uint8_t ias_leaf_cert_oid[]        = OID(0x04);
+const uint8_t ias_report_signature_oid[] = OID(0x05);
+
+const uint8_t quote_oid[]          = OID(0x06);
+const size_t ias_oid_len = sizeof(ias_response_body_oid);
+const size_t quote_oid_len = sizeof(quote_oid);
+
+/**
+ * @return Returns -1 if OID not found. Otherwise, returns 1;
+ */
+static int find_oid
+(
+     const unsigned char* ext, size_t ext_len,
+     const unsigned char* oid, size_t oid_len,
+     const uint8_t** val, size_t* len
+)
+{
+    const uint8_t* p = memmem(ext, ext_len, oid, oid_len);
+    if (p == NULL) {
+        return -1;
+    }
+
+    p += oid_len;
+
+    int i = 0;
+
+    // Some TLS libraries generate a BOOLEAN for the criticality of the extension.
+    if (p[i] == 0x01) {
+        assert(p[i++] == 0x01); // tag, 0x01 is ASN1 Boolean
+        assert(p[i++] == 0x01); // length
+        assert(p[i++] == 0x00); // value (0 is non-critical, non-zero is critical)
+    }
+
+    // Now comes the octet string
+    assert(p[i++] == 0x04); // tag for octet string
+    assert(p[i++] == 0x82); // length encoded in two bytes
+    *len  =  (size_t) (p[i++] << 8);
+    *len +=  p[i++];
+    *val  = &p[i++];
+
+    return 1;
+}
+
+/**
+ * @return 1 if it is an EPID-based attestation RA-TLS
+ * certificate. Otherwise, 0.
+ */
+int is_epid_ratls_cert
+(
+    const uint8_t* der_crt,
+    uint32_t der_crt_len
+)
+{
+    const uint8_t* ext_data;
+    size_t ext_data_len;
+    int rc;
+    
+    rc = find_oid(der_crt, der_crt_len,
+                  ias_response_body_oid, ias_oid_len,
+                  &ext_data, &ext_data_len);
+    if (1 == rc) return 1;
+
+    rc = find_oid(der_crt, der_crt_len,
+                   quote_oid, ias_oid_len,
+                   &ext_data, &ext_data_len);
+    if (1 == rc) return 0;
+
+    /* Something is fishy. Neither EPID nor ECDSA RA-TLC cert?! */
+    assert(0);
+    // Avoid compiler error: control reaches end of non-void function
+    // [-Werror=return-type]
+    return -1;
+}
+
+/**
+ * @return Returns -1 if OID was not found. Otherwise, returns 1;
+ */
+static int extract_x509_extension
+(
+    const uint8_t* ext,
+    uint32_t ext_len,
+    const uint8_t* oid,
+    size_t oid_len,
+    uint8_t* data,
+    uint32_t* data_len,
+    uint32_t data_max_len
+)
+{
+    const uint8_t* ext_data;
+    size_t ext_data_len;
+    
+    int rc = find_oid(ext, ext_len, oid, oid_len, &ext_data, &ext_data_len);
+    if (rc == -1) return -1;
+    
+    assert(ext_data != NULL);
+    assert(ext_data_len <= data_max_len);
+    memcpy(data, ext_data, ext_data_len);
+    *data_len = (uint32_t) ext_data_len;
+
+    return 1;
+}
+
+void get_quote_from_ias_report
 (
     const uint8_t* report /* in */,
     const uint32_t report_len  /* in */,
@@ -56,7 +188,7 @@ static
 int verify_report_data_against_server_cert
 (
     DecodedCert* crt,
-    sgx_quote_t* quote
+    sgx_report_body_t* report_body
 )
 {
     /* crt->publicKey seems to be the DER encoded public key. The
@@ -85,24 +217,17 @@ int verify_report_data_against_server_cert
     wc_FreeRsaKey(&rsaKey);
 
 #ifdef DEBUG
-    // fprintf(stderr, "SHA256 of server's public key:\n");
-    // for (int i=0; i < SHA256_DIGEST_SIZE; ++i) fprintf(stderr, "%02x", shaSum[i]);
-    // fprintf(stderr, "\n");
-
-    // fprintf(stderr, "Quote's report data:\n");
-    // for (int i=0; i < SGX_REPORT_DATA_SIZE; ++i) fprintf(stderr, "%02x", quote->report_body.report_data.d[i]);
-    // fprintf(stderr, "\n");
     printf("SHA256 of server's public key:\n");
     for (int i=0; i < SHA256_DIGEST_SIZE; ++i) printf("%02x", shaSum[i]);
     printf("\n");
 
-    printf("Quote's report data:\n");
-    for (int i=0; i < SGX_REPORT_DATA_SIZE; ++i) printf("%02x", quote->report_body.report_data.d[i]);
+    printf("report data:\n");
+    for (int i=0; i < SGX_REPORT_DATA_SIZE; ++i) printf("%02x", report_body->report_data.d[i]);
     printf("\n");
 #endif
     
     assert(SHA256_DIGEST_SIZE <= SGX_REPORT_DATA_SIZE);
-    ret = memcmp(quote->report_body.report_data.d, shaSum, SHA256_DIGEST_SIZE);
+    ret = memcmp(report_body->report_data.d, shaSum, SHA256_DIGEST_SIZE);
     assert(ret == 0);
 
     return ret;
@@ -186,7 +311,7 @@ int verify_ias_certificate_chain(attestation_verification_report_t* attn_report)
  *
  * @return 0 if verified successfully, 1 otherwise.
  */
-static int verify_enclave_quote_status
+static int epid_verify_enclave_quote_status
 (
     const uint8_t* ias_report,
     uint32_t   ias_report_len
@@ -242,6 +367,41 @@ static int verify_enclave_quote_status
     return 1;
 }
 
+/**
+ * Extract all extensions of EPID-based cert.
+ */
+void epid_extract_x509_extensions
+(
+    const uint8_t* ext,
+    uint32_t ext_len,
+    attestation_verification_report_t* attn_report
+)
+{
+    extract_x509_extension(ext, ext_len,
+                           ias_response_body_oid, ias_oid_len,
+                           attn_report->ias_report,
+                           &attn_report->ias_report_len,
+                           sizeof(attn_report->ias_report));
+
+    extract_x509_extension(ext, ext_len,
+                           ias_root_cert_oid, ias_oid_len,
+                           attn_report->ias_sign_ca_cert,
+                           &attn_report->ias_sign_ca_cert_len,
+                           sizeof(attn_report->ias_sign_ca_cert));
+
+    extract_x509_extension(ext, ext_len,
+                           ias_leaf_cert_oid, ias_oid_len,
+                           attn_report->ias_sign_cert,
+                           &attn_report->ias_sign_cert_len,
+                           sizeof(attn_report->ias_sign_cert));
+
+    extract_x509_extension(ext, ext_len,
+                           ias_report_signature_oid, ias_oid_len,
+                           attn_report->ias_report_signature,
+                           &attn_report->ias_report_signature_len,
+                           sizeof(attn_report->ias_report_signature));
+}
+
 int epid_verify_sgx_cert_extensions
 (
     uint8_t* der_crt,
@@ -258,7 +418,7 @@ int epid_verify_sgx_cert_extensions
     ret = ParseCertRelative(&crt, CERT_TYPE, NO_VERIFY, 0);
     assert(ret == 0);
     
-    extract_x509_extensions(crt.extensions, (uint32_t) crt.extensionsSz,
+    epid_extract_x509_extensions(crt.extensions, (uint32_t) crt.extensionsSz,
       &attn_report);
 
     /* Base64 decode attestation report signature. */
@@ -274,15 +434,15 @@ int epid_verify_sgx_cert_extensions
     ret = verify_ias_report_signature(&attn_report);
     assert(ret == 0);
 
-    ret = verify_enclave_quote_status(attn_report.ias_report,
+    ret = epid_verify_enclave_quote_status(attn_report.ias_report,
                                       attn_report.ias_report_len);
     assert(ret == 0);
     
     sgx_quote_t quote = {0, };
-    get_quote_from_report(attn_report.ias_report,
+    get_quote_from_ias_report(attn_report.ias_report,
                           attn_report.ias_report_len,
                           &quote);
-    ret = verify_report_data_against_server_cert(&crt, &quote);
+    ret = verify_report_data_against_server_cert(&crt, &(quote.report_body));
     assert(ret == 0);
 
     FreeDecodedCert(&crt);
@@ -290,6 +450,42 @@ int epid_verify_sgx_cert_extensions
     return 0;
 }
 
+int ecdsa_verify_sgx_cert_extensions
+(
+    uint8_t* der_crt,
+    uint32_t der_crt_len
+)
+{
+    DecodedCert crt;
+    int ret;
+
+    InitDecodedCert(&crt, der_crt, der_crt_len, NULL);
+    InitSignatureCtx(&crt.sigCtx, NULL, INVALID_DEVID);
+    ret = ParseCertRelative(&crt, CERT_TYPE, NO_VERIFY, 0);
+    assert(ret == 0);
+
+    // just give a buffer here to use the find oid api above. should be enough
+    uint8_t ecdsa_quote_buf[6144];
+    uint32_t ecdsa_quote_len = 0;
+
+    extract_x509_extension(crt.extensions, (uint32_t) crt.extensionsSz,
+                           quote_oid, quote_oid_len,
+                           ecdsa_quote_buf,
+                           &ecdsa_quote_len,
+                           sizeof(ecdsa_quote_buf));
+
+    ret = ecdsa_verify_quote(ecdsa_quote_buf, ecdsa_quote_len);
+
+    ret = verify_report_data_against_server_cert(&crt,
+      &(((sgx_quote3_t*)ecdsa_quote_buf)->report_body));
+    assert(ret == 0);
+
+    FreeDecodedCert(&crt);
+    return 0;
+}
+
+// sample tls cert verification logic
+// user should override this and provide verification logic for other fields like MRENCLAVE and MRSIGNER to the verify_sgx_cert_extensions. 
 int cert_verify_callback(int preverify, WOLFSSL_X509_STORE_CTX* store) {
 
     printf("Verifying SGX certificate extensions ... \n");

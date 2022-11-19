@@ -44,6 +44,7 @@ Build_Mode = HW_RELEASE
 endif
 endif
 endif
+DCAP_TVL_LIB = sgx_dcap_tvl
 ### Intel(R) SGX SDK Settings ###
 
 ### Project Settings ###
@@ -71,8 +72,8 @@ Crypto_Library_Name := sgx_tcrypto
 Tclient_Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) \
 	-Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) \
 	-L$(SGX_RA_TLS_Lib_Path) -lratls_attester_t -lratls_challenger_t -lratls_common_t -lwolfssl.sgx.static.lib \
-	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
-	-Wl,--start-group -lsgx_tstdc -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
+	-Wl,--whole-archive -l$(DCAP_TVL_LIB) -l$(Trts_Library_Name) -Wl,--no-whole-archive \
+	-Wl,--start-group -lsgx_tstdc -lsgx_tcxx -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
 	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
 	-Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
 	-Wl,--defsym,__ImageBase=0 \

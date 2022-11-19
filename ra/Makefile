@@ -113,6 +113,7 @@ $(Attester_u_C_Objects) : $$(patsubst %_u.o,%.c, $$@)
 ## trusted challenger lib ## 
 ## (additionally needs the ecall implementation of set verify) ##
 Challenger_t_C_Files := challenger/challenger_wolfssl.c \
+	challenger/tchallenger.c \
 	challenger/challenger.c \
 	challenger/ias_sign_ca_cert.c
 

@@ -1,5 +1,6 @@
 enclave {
   from "attester.edl" import *;
+  from "tchallenger.edl" import *;
   from "ratls_wolfssl.edl" import *;
   from "server.edl" import *;
 };

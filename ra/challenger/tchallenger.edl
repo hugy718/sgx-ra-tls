@@ -1,0 +1,23 @@
+enclave {
+  include "sgx_qve_header.h"
+  include "sgx_ql_lib_common.h"
+  include "sgx_ql_quote.h"
+
+  untrusted {
+    void ocall_get_current_time([out] uint64_t* current_time);
+    
+    quote3_error_t ocall_sgx_get_supplemental_data_size(
+      [out] uint32_t* supplemental_data_size
+    );
+
+    quote3_error_t ocall_sgx_verify_quote(
+      [size=quote_len, in] const uint8_t* quote_buf, uint32_t quote_len,
+      time_t expiration_check_date,
+      [out] sgx_ql_qv_result_t* quote_verification_result,
+      [size = qve_report_info_size, in, out]
+        sgx_ql_qe_report_info_t* qve_report_info, size_t qve_report_info_size,
+      [size = supplemental_data_size, out] 
+        uint8_t* supplemental_data_buf, uint32_t supplemental_data_size
+    );
+  };
+};

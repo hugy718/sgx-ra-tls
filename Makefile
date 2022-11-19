@@ -71,8 +71,10 @@ ratls_libs: lib
 ### Build client ###
 WOLFSSL_CLIENT_LIBS=-l:libratls_challenger.a -l:libratls_common_u.a -l:libwolfssl.a -lm
 
+APP_DCAP_CHALLENGER_LIBS = -lsgx_dcap_ql -lsgx_dcap_quoteverify -lsgx_urts
+
 wolfssl-client: client/client-tls.c install
-	$(CC) -o $@ $< $(CFLAGS) -I./install/include -L./install/lib -Ldeps/local/lib $(WOLFSSL_CLIENT_LIBS)
+	$(CC) -o $@ $< $(CFLAGS) -I./install/include -L./install/lib -Ldeps/local/lib $(WOLFSSL_CLIENT_LIBS) $(APP_DCAP_CHALLENGER_LIBS)
 
 clients: wolfssl-client mtclient
 ### Build client ###

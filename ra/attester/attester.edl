@@ -4,12 +4,22 @@ enclave {
   include "wolfssl/ssl.h"
   include "ra.h"
   include "attester.h"
-  
+  // ecdsa
+  include "sgx_ql_lib_common.h"
+
   untrusted {
     /* define OCALLs here. */
     void ocall_sgx_init_quote([out] sgx_target_info_t* target_info);
     void ocall_remote_attestation([in] sgx_report_t* report,
       [in] const struct ra_tls_options* opts,
       [out] attestation_verification_report_t* attn_report);
+
+    // ecdsa
+    quote3_error_t ocall_sgx_qe_get_target_info([size = target_info_size, out]
+      sgx_target_info_t *p_target_info, size_t target_info_size);    
+    quote3_error_t ocall_sgx_qe_get_quote_size([out] uint32_t *p_quote_size);
+    quote3_error_t ocall_sgx_qe_get_quote(
+      [size = report_size, in] sgx_report_t* p_report, size_t report_size,
+      [size = quote_size, out] uint8_t *p_quote, uint32_t quote_size); 
   };                            
 };

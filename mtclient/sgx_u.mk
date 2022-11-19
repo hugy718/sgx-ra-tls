@@ -42,6 +42,8 @@ Build_Mode = HW_RELEASE
 endif
 endif
 endif
+
+APP_DCAP_LIBS := -lsgx_dcap_ql -lsgx_dcap_quoteverify -lsgx_urts
 ### Intel(R) SGX SDK Settings ###
 
 ### Project Settings ###
@@ -75,8 +77,8 @@ endif
 
 ### Linking setting ###
 Tclient_App_Link_Flags := $(SGX_COMMON_CFLAGS) \
-	-L$(SGX_RA_TLS_Lib_Path) -lratls_attester_u -lratls_common_u\
-	-L$(SGX_LIBRARY_PATH)	-l$(Urts_Library_Name) \
+	-L$(SGX_RA_TLS_Lib_Path) -lratls_attester_u -lratls_challenger -lratls_common_u \
+	-L$(SGX_LIBRARY_PATH)	-l$(Urts_Library_Name) $(APP_DCAP_LIBS) \
 	-L$(SGX_RA_TLS_Lib_Path) -l:libcurl-wolfssl.a -l:libwolfssl.a \
 	-lpthread -lz -lm
 

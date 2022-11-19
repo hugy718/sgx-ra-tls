@@ -15,6 +15,10 @@
 // for base64_encode only
 #include "wolfssl/wolfcrypt/coding.h"
 
+// ecdsa
+#include "sgx_dcap_ql_wrapper.h"
+#include "sgx_ql_lib_common.h"
+
 /* Untrusted code to do remote attestation with the SGX SDK. */
 
 static const char pem_marker_begin[] = "-----BEGIN CERTIFICATE-----";
@@ -221,4 +225,82 @@ void ocall_sgx_init_quote
     sgx_epid_group_id_t gid;
     sgx_status_t status = sgx_init_quote(target_info, &gid);
     assert(status == SGX_SUCCESS);
+}
+
+// ecdsa
+// taken from the SDK 2.16 utls.cpp
+quote3_error_t ocall_sgx_qe_get_target_info(
+    sgx_target_info_t *p_target_info, size_t target_info_size)
+{
+    if (p_target_info == NULL || target_info_size != sizeof(sgx_target_info_t))
+        return SGX_QL_ERROR_INVALID_PARAMETER;
+
+    return sgx_qe_get_target_info(p_target_info);
+
+}
+
+quote3_error_t ocall_sgx_qe_get_quote_size(uint32_t *p_quote_size)
+{
+    return sgx_qe_get_quote_size(p_quote_size);
+}
+
+quote3_error_t ocall_sgx_qe_get_quote(
+    sgx_report_t* p_report, size_t report_size,
+    uint8_t *p_quote, size_t quote_size)
+{
+    quote3_error_t ret = SGX_QL_SUCCESS;
+    uint32_t tmp_quote_size = 0;
+    uint8_t *p_tmp_quote = NULL;
+
+
+    if (p_report == NULL || p_quote == NULL)
+        return SGX_QL_ERROR_INVALID_PARAMETER;
+
+    do {
+        //Use DCAP quote generation in-proc mode by default
+        ret = sgx_qe_get_quote_size(&tmp_quote_size);
+        if (ret != SGX_QL_SUCCESS) {
+            break;
+        }
+
+        if (tmp_quote_size == 0)
+            break;
+
+        p_tmp_quote = (uint8_t*) malloc (tmp_quote_size);
+        if (p_tmp_quote == NULL) {
+            ret = SGX_QL_ERROR_OUT_OF_MEMORY;
+            break;
+        }
+
+        if (tmp_quote_size != quote_size) {
+            ret = SGX_QL_ERROR_INVALID_PARAMETER;
+            break;
+        }
+
+        printf("ecdsa quote_size: %lu\n", quote_size);
+
+        memset(p_tmp_quote, 0, tmp_quote_size);
+
+        // Get the Quote
+        ret = sgx_qe_get_quote(p_report, tmp_quote_size, p_tmp_quote);
+        if (ret != SGX_QL_SUCCESS) {
+            break;
+        }
+
+        memset(p_quote, 0, quote_size);
+        // memcpy_s(p_quote, tmp_quote_size, p_tmp_quote, tmp_quote_size);
+        memcpy(p_quote, p_tmp_quote, tmp_quote_size);
+
+        ret = SGX_QL_SUCCESS;
+
+    } while(0);
+
+
+    if(p_tmp_quote) {
+        free(p_tmp_quote);
+        p_tmp_quote = NULL;
+        tmp_quote_size = 0;
+    }
+
+    return ret;
 }

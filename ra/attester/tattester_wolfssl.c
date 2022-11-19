@@ -9,6 +9,9 @@
 
 #include "ra.h"
 #include "common/internal_util_wolfssl.h"
+#include "tattester_internal.h"
+
+#include "sgx_error.h"
 
 extern struct ra_tls_options my_ra_tls_options;
 
@@ -53,6 +56,8 @@ void generate_x509
            attn_report->ias_report_signature_len);
     crt.iasSigSz = (int) attn_report->ias_report_signature_len;
 
+    crt.quoteSz = 0;
+
     RNG    rng;
     wc_InitRng(&rng);
     
@@ -61,6 +66,33 @@ void generate_x509
     *der_crt_len = certSz;
 }
 
+static void ecdsa_generate_x509(RsaKey* key, uint8_t* der_crt, int* der_crt_len,
+  const sgx_quote3_t* ecdsa_quote, uint32_t quote_size) {
+  Cert crt;
+  wc_InitCert(&crt);
+
+  strncpy(crt.subject.country, "US", CTC_NAME_SIZE);
+  strncpy(crt.subject.state, "OR", CTC_NAME_SIZE);
+  strncpy(crt.subject.locality, "Hillsboro", CTC_NAME_SIZE);
+  strncpy(crt.subject.org, "Intel Inc.", CTC_NAME_SIZE);
+  strncpy(crt.subject.unit, "Intel Labs", CTC_NAME_SIZE);
+  strncpy(crt.subject.commonName, "SGX rocks!", CTC_NAME_SIZE);
+  strncpy(crt.subject.email, "webmaster@intel.com", CTC_NAME_SIZE);
+
+  memcpy(crt.quote, ecdsa_quote, quote_size);
+  crt.quoteSz = (int) quote_size;
+
+  crt.iasAttestationReportSz = 0;
+
+  RNG    rng;
+  wc_InitRng(&rng);
+  
+  int certSz = wc_MakeSelfCert(&crt, der_crt, (word32) *der_crt_len, key, &rng);
+  assert(certSz > 0);
+  *der_crt_len = certSz;
+}
+
+// opts is set for EPID, NULL for ECDSA
 static void wolfssl_create_key_and_x509
 (
     uint8_t* der_key,
@@ -91,12 +123,30 @@ static void wolfssl_create_key_and_x509
     /* Generate certificate */
     sgx_report_data_t report_data = {0, };
     sha256_rsa_pubkey(report_data.d, &genKey);
-    attestation_verification_report_t attestation_report;
 
-    do_remote_attestation(&report_data, opts, &attestation_report);
+    if (opts) {
+      attestation_verification_report_t attestation_report;
 
-    generate_x509(&genKey, der_cert, der_cert_len,
-                  &attestation_report);
+      do_remote_attestation(&report_data, opts, &attestation_report);
+
+      generate_x509(&genKey, der_cert, der_cert_len,
+                    &attestation_report);
+    } else {
+      uint32_t quote_size;
+      quote3_error_t quote_error = SGX_QL_ERROR_UNEXPECTED;
+      sgx_status_t status = SGX_ERROR_UNEXPECTED;
+      sgx_quote3_t* ecdsa_quote = obtain_ecdsa_qe_quote(&report_data, &quote_size,
+        &quote_error, &status);
+        
+      assert(quote_error == SGX_QL_SUCCESS);
+      assert(status == SGX_SUCCESS);
+
+      if ((quote_error == SGX_QL_SUCCESS) && (status == SGX_SUCCESS)) {
+        ecdsa_generate_x509(&genKey, der_cert, der_cert_len,
+                            ecdsa_quote, quote_size);
+      }  
+      if (ecdsa_quote) free(ecdsa_quote);
+    }
 }
 
 /**
@@ -123,9 +173,14 @@ void wolfssl_create_key_and_x509_ctx(WOLFSSL_CTX* ctx) {
     int der_key_len = 2048;
     int der_cert_len = 8 * 1024;
 
+    // create_key_and_x509(der_key, &der_key_len,
+    //                     der_cert, &der_cert_len,
+    //                     &my_ra_tls_options);
+
+    // testing ecdsa
     create_key_and_x509(der_key, &der_key_len,
                         der_cert, &der_cert_len,
-                        &my_ra_tls_options);
+                        NULL);
 
     int ret;
     ret = wolfSSL_CTX_use_certificate_buffer(ctx, der_cert, der_cert_len,

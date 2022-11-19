@@ -92,7 +92,7 @@ index e23425311..1d2ebb472 100644
 +    byte    iasSigCert[2048];
 +    byte    iasSig[2048];
 +    byte    iasAttestationReport[2048];
-+    byte    quote[2048];
++    byte    quote[6144];
 +#endif
  #ifdef WOLFSSL_CERT_REQ
      byte attrib[MAX_ATTRIB_SZ];        /* Cert req attributes encoded */
@@ -368,7 +368,7 @@ index b73084634..ef1b52d86 100644
 +    int     iasSigSz;
 +    byte    iasAttestationReport[2048];
 +    int     iasAttestationReportSz;
-+    byte    quote[2048];
++    byte    quote[6144];
 +    int     quoteSz;
 +#endif
  #ifdef WOLFSSL_CERT_REQ
