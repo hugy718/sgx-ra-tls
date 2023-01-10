@@ -2,16 +2,25 @@
 
 # set -x
 
-if ( [[ ! -z "$SPID" ]] && [[ -z "$EPID_SUBSCRIPTION_KEY" ]] ) || \
-   ( [[ -z "$SPID" ]] && [[ ! -z "$EPID_SUBSCRIPTION_KEY" ]] ); then
-    echo "EPID requires both SPID and EPID_SUBSCRIPTION_KEY be set!"
+if [[ "$USE_ECDSA" == 1 ]]; then
+# ecdsa
+# dummy ratls option to suppress warning
+cat <<HEREDOC
+#include "attester.h" 
+
+struct ra_tls_options my_ra_tls_options;
+HEREDOC
+else
+# epid
+if [[ -z "$SPID" ]] || [[ -z "$QUOTE_TYPE" ]] || \
+   [[ -z "$EPID_SUBSCRIPTION_KEY" ]]; then
+    echo "EPID requires setting SPID, QUOTE_TYPE and EPID_SUBSCRIPTION_KEY!"
     exit 1
 fi
 
-if ( [[ "$QUOTE_TYPE" != "SGX_LINKABLE_SIGNATURE" ]] ) && \
-   ( [[ "$QUOTE_TYPE" != "SGX_UNLINKABLE_SIGNATURE" ]] ); then
-    echo $QUOTE_TYPE
-    echo "QUOTE_TYPE must be one of SGX_UNLINKABLE_SIGNATURE or SGX_LINKABLE_SIGNATURE"
+if [[ "$QUOTE_TYPE" != "SGX_LINKABLE_SIGNATURE" ]] && \
+   [[ "$QUOTE_TYPE" != "SGX_UNLINKABLE_SIGNATURE" ]]; then
+    echo "QUOTE_TYPE must be one of SGX_UNLINKABLE_SIGNATURE or SGX_LINKABLE_SIGNATURE, but $QUOTE_TYPE received."
     exit 1
 fi
 
@@ -29,3 +38,4 @@ struct ra_tls_options my_ra_tls_options = {
     .subscription_key = "$EPID_SUBSCRIPTION_KEY"
 };
 HEREDOC
+fi
