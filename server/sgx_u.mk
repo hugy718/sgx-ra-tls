@@ -1,4 +1,7 @@
 ### Intel(R) SGX SDK Settings ###
+SGX_MODE ?= HW
+SGX_DEBUG ?= 0
+SGX_PRERELEASE ?= 1
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
 else ifeq ($(findstring -m32, $(CXXFLAGS)), -m32)
@@ -109,10 +112,11 @@ endif
 
 ### Sources ###
 Server_App_C_Files := untrusted/App.c
-Server_App_C_Objects := $(Server_App_C_Files:.c=.o)
+Server_App_C_Objects := $(Server_App_C_Files:.c=.o) untrusted/ra_tls_options.o
 
 ## Edger8r related sources ##
 untrusted/Server_Enclave_u.c: $(SGX_EDGER8R) trusted/Server_Enclave.edl
+	echo $(SGX_MODE)
 	cd ./untrusted && $(SGX_EDGER8R) --untrusted ../trusted/Server_Enclave.edl --search-path ../trusted --search-path $(SGX_SDK)/include --search-path $(SGX_RA_TLS_Include_Path)
 	@echo "GEN  =>  $@"
 
@@ -122,6 +126,10 @@ untrusted/Server_Enclave_u.o: untrusted/Server_Enclave_u.c
 ## Edger8r related sources ##
 
 untrusted/%.o: untrusted/%.c
+	$(CC) $(Server_App_C_Flags) -c $< -o $@
+	@echo "CC  <=  $<"
+
+untrusted/ra_tls_options.o: ../option/ra_tls_options.c
 	$(CC) $(Server_App_C_Flags) -c $< -o $@
 	@echo "CC  <=  $<"
 

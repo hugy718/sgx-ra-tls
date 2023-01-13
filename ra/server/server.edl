@@ -23,7 +23,9 @@ enclave {
 		public int enc_wolfSSL_Cleanup(void);
 
     /* add set ra-tls verify ecall*/
-    public void enc_create_key_and_x509([user_check]WOLFSSL_CTX* ctx);
+    public void enc_create_key_and_x509_ecdsa([user_check] WOLFSSL_CTX* ctx);
+    public void enc_create_key_and_x509([user_check] WOLFSSL_CTX* ctx,
+      [in] const struct ra_tls_options* opt);
 
     public void enc_wolfSSL_CTX_set_ratls_verify([user_check] WOLFSSL_CTX* ctx);
 

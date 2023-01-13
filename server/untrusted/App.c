@@ -36,6 +36,8 @@
 
 #define DEFAULT_PORT 11111
 
+extern struct ra_tls_options my_ra_tls_options;
+
 int main(int argc, char* argv[]) /* not using since just testing w/ wc_test */
 {
 	sgx_enclave_id_t id;
@@ -126,7 +128,11 @@ endif
 #endif
 
   // prepare ra cert and add as extension
-  sgxStatus = enc_create_key_and_x509(id, ctx);
+  // epid
+  sgxStatus = enc_create_key_and_x509(id, ctx, &my_ra_tls_options);
+  // ecdsa
+  // sgxStatus = enc_create_key_and_x509_ecdsa(id, ctx);
+
   assert(sgxStatus == SGX_SUCCESS);
   // prepare ra cert and add as extension
   

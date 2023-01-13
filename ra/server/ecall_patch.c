@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 
+#include "attester.h"
 #include "challenger_wolfssl.h"
 #include "tattester_wolfssl.h"
 
@@ -89,8 +90,11 @@ int enc_wolfSSL_Cleanup(void)
     return wolfSSL_Cleanup();
 }
 
-void enc_create_key_and_x509(WOLFSSL_CTX* ctx) {
-  wolfssl_create_key_and_x509_ctx(ctx);
+void enc_create_key_and_x509_ecdsa(WOLFSSL_CTX* ctx) {
+  wolfssl_create_key_and_x509_ctx_ecdsa(ctx);
+}
+void enc_create_key_and_x509(WOLFSSL_CTX* ctx, const struct ra_tls_options* opt) {
+  wolfssl_create_key_and_x509_ctx(ctx, opt);
 }
 
 void enc_wolfSSL_CTX_set_ratls_verify(WOLFSSL_CTX* ctx) {

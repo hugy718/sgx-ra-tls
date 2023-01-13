@@ -10,7 +10,8 @@
 extern "C" {
 #endif
 
-void wolfssl_create_key_and_x509_ctx(WOLFSSL_CTX* ctx);
+void wolfssl_create_key_and_x509_ctx(WOLFSSL_CTX* ctx, const struct ra_tls_options* opt);
+void wolfssl_create_key_and_x509_ctx_ecdsa(WOLFSSL_CTX* ctx);
 
 #ifdef __cplusplus
 }

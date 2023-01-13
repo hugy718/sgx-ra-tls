@@ -9,6 +9,8 @@
 
 #include "sgx_trts.h"
 
+extern struct ra_tls_options my_ra_tls_options;
+
 typedef struct {
   bool initialized;
   WOLFSSL_CTX* ctx;
@@ -47,7 +49,10 @@ static int ssl_ctx_setup(SslContext* lc) {
   // setup verify callback in enclave (only difference with tclient)
 
   // prepare ra cert and add as extension
-  wolfssl_create_key_and_x509_ctx(lc->ctx);
+  // epid
+  wolfssl_create_key_and_x509_ctx(lc->ctx, &my_ra_tls_options);
+  // ecdsa
+  // wolfssl_create_key_and_x509_ctx_ecdsa(lc->ctx);
   // prepare ra cert and add as extension
 
   // link socket to wolfssl ctx

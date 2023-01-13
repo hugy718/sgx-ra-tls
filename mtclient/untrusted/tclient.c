@@ -13,6 +13,9 @@
 
 #include "Tclient_Enclave_u.h"
 
+#include <sys/types.h>
+#include "time.h"
+
 #define MAXRCVDATASIZE 4096
 #define SERV_PORT 11111
 #define SERV_ADDR "127.0.0.1"
@@ -65,6 +68,14 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  {
+    struct timeval time;
+    gettimeofday(&time, 0);
+    printf("timing(curl ra): %llu\n",
+      (unsigned long long) time.tv_sec*1000*1000
+      + (unsigned long long) time.tv_usec);
+  }
+
   // send data
   const char* sendBuff = "GET / HTTP/1.0\r\n\r\n";
   sgxStatus = enc_sample_send(id, &ret, sendBuff, strlen(sendBuff),
@@ -80,6 +91,14 @@ int main(int argc, char* argv[]) {
   if (sgxStatus != SGX_SUCCESS || ret == -1) {
     printf("client failed to read\n");
     return EXIT_FAILURE;
+  }
+
+  {
+    struct timeval time;
+    gettimeofday(&time, 0);
+    printf("timing(curl ra): %llu\n",
+      (unsigned long long) time.tv_sec*1000*1000
+      + (unsigned long long) time.tv_usec);
   }
 
   printf("Server: \n%s\n", rcvBuff);

@@ -1,4 +1,7 @@
 ### Intel(R) SGX SDK Settings ###
+SGX_MODE ?= HW
+SGX_DEBUG ?= 0
+SGX_PRERELEASE ?= 1
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
 else ifeq ($(findstring -m32, $(CXXFLAGS)), -m32)
@@ -98,7 +101,7 @@ endif
 
 ### Sources ###
 Tclient_Enclave_C_Files := trusted/Tclient_Enclave.c
-Tclient_Enclave_C_Objects := $(Tclient_Enclave_C_Files:.c=.o)
+Tclient_Enclave_C_Objects := $(Tclient_Enclave_C_Files:.c=.o) trusted/ra_tls_options.o
 
 ### Edger8r related sourcs ###
 trusted/Tclient_Enclave_t.c: $(SGX_EDGER8R) ./trusted/Tclient_Enclave.edl
@@ -111,6 +114,10 @@ trusted/Tclient_Enclave_t.o: ./trusted/Tclient_Enclave_t.c
 ### Edger8r related sourcs ###
 
 trusted/%.o: trusted/%.c
+	$(CC) $(Tclient_Enclave_C_Flags) -c $< -o $@
+	@echo "CC  <=  $<"
+
+trusted/ra_tls_options.o: ../option/ra_tls_options.c
 	$(CC) $(Tclient_Enclave_C_Flags) -c $< -o $@
 	@echo "CC  <=  $<"
 

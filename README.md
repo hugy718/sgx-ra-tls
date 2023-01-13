@@ -8,7 +8,7 @@ The old repo seems no longer being maintained. It uses outdated EPID and ECDSA A
 
 # Introduction
 
-This project provides a proof-of-concept implementation on how to integrate Intel SGX remote attestation into the TLS connection setup. Conceptually, we extend the standard X.509 certificate with SGX-related information. The additional information allows the receiver of the certificate to verify that it is indeed communicating with an SGX enclave. The white paper in the  Intel's original sgx-ra-tls repository "Integrating Remote Attestation with Transport Layer Security" provides more details. RA-TLS supports [EPID](https://software.intel.com/sites/default/files/managed/57/0e/ww10-2016-sgx-provisioning-and-attestation-final.pdf).
+This project provides a proof-of-concept implementation on how to integrate Intel SGX remote attestation into the TLS connection setup. Conceptually, we extend the standard X.509 certificate with SGX-related information. The additional information allows the receiver of the certificate to verify that it is indeed communicating with an SGX enclave. The white paper in the  Intel's original sgx-ra-tls repository "Integrating Remote Attestation with Transport Layer Security" provides more details. RA-TLS supports EPID and ECDSA [attestations](https://www.intel.com/content/www/us/en/developer/tools/software-guard-extensions/attestation-services.html).
 
 ## Repository Structure
 
@@ -20,6 +20,15 @@ The repository root directory contains code to generate and parse extended X.509
 * tclient: mutually attest with mserver.
 
 The server and client codes are from the wolfssl-example repository patched according to the original Intel sgx-ra-tls repository. Those example codes are not updated frequently since then.
+
+## switching between ecdsa and epid.
+
+Challenger supports both epid and ecdsa verification by default via x.509 certs fields (`is_epid_ratls_cert()`).
+
+The attester choose to prepare attestation report via `wolfssl_create_key_and_x509_ctx()`. In enclave, the calls are `wolfssl_create_key_and_x509_ctx_ecdsa()` and `wolfssl_create_key_and_x509_ctx()`. In untrusted app, the ecalls are `enc_create_key_and_x509_ecdsa()` and
+`enc_create_key_and_x509()`.
+
+For epid, please use the `option/ra_tls_option.c.sh` to specify the epid subscription info.
 
 ## Code Structure (need update)
 
@@ -59,7 +68,7 @@ For ECDSA:
 USE_ECDSA=1 ./build.sh
 ```
 
-# Run
+## Run
 
 launch the server with under their respective directory
 

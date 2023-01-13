@@ -89,7 +89,7 @@ $(Common_u_C_Objects) : $$(patsubst %_u.o,%.c, $$@)
 
 ## trusted attester lib ##
 Attester_t_C_Files := attester/tattester_wolfssl.c \
-	attester/tattester.c \
+	attester/tattester.c # \
 	$(PROJECT_ROOT)/option/ra_tls_options.c 
 
 Attester_t_C_Objects := $(Attester_t_C_Files:%.c=%_t.o)

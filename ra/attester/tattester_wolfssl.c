@@ -13,8 +13,6 @@
 
 #include "sgx_error.h"
 
-extern struct ra_tls_options my_ra_tls_options;
-
 /**
  * Caller must allocate memory for certificate.
  * 
@@ -167,27 +165,26 @@ void create_key_and_x509
                                 opts);
 }
 
-void wolfssl_create_key_and_x509_ctx(WOLFSSL_CTX* ctx) {
-    uint8_t der_key[2048];
-    uint8_t der_cert[8 * 1024];
-    int der_key_len = 2048;
-    int der_cert_len = 8 * 1024;
 
-    // create_key_and_x509(der_key, &der_key_len,
-    //                     der_cert, &der_cert_len,
-    //                     &my_ra_tls_options);
+void wolfssl_create_key_and_x509_ctx_ecdsa(WOLFSSL_CTX* ctx) {
+  wolfssl_create_key_and_x509_ctx(ctx, NULL);
+}
 
-    // testing ecdsa
-    create_key_and_x509(der_key, &der_key_len,
-                        der_cert, &der_cert_len,
-                        NULL);
+void wolfssl_create_key_and_x509_ctx(WOLFSSL_CTX* ctx,
+  const struct ra_tls_options* opt) {
+  uint8_t der_key[2048];
+  uint8_t der_cert[8 * 1024];
+  int der_key_len = 2048;
+  int der_cert_len = 8 * 1024;
 
-    int ret;
-    ret = wolfSSL_CTX_use_certificate_buffer(ctx, der_cert, der_cert_len,
-                                             SSL_FILETYPE_ASN1);
-    assert(ret == SSL_SUCCESS);
+  create_key_and_x509(der_key, &der_key_len, der_cert, &der_cert_len, opt);
 
-    wolfSSL_CTX_use_PrivateKey_buffer(ctx, der_key, der_key_len,
-                                      SSL_FILETYPE_ASN1);
-    assert(ret == SSL_SUCCESS);
+  int ret;
+  ret = wolfSSL_CTX_use_certificate_buffer(ctx, der_cert, der_cert_len,
+                                            SSL_FILETYPE_ASN1);
+  assert(ret == SSL_SUCCESS);
+
+  wolfSSL_CTX_use_PrivateKey_buffer(ctx, der_key, der_key_len,
+                                    SSL_FILETYPE_ASN1);
+  assert(ret == SSL_SUCCESS);
 }

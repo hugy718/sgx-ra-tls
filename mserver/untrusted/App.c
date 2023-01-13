@@ -34,7 +34,12 @@
 
 #include "Server_Enclave_u.h"   /* contains untrusted wrapper functions used to call enclave functions*/
 
+#include <sys/types.h>
+#include <time.h>
+
 #define DEFAULT_PORT 11111
+
+extern struct ra_tls_options my_ra_tls_options;
 
 int main(int argc, char* argv[]) /* not using since just testing w/ wc_test */
 {
@@ -124,7 +129,11 @@ int main(int argc, char* argv[]) /* not using since just testing w/ wc_test */
   // setup verify callback in enclave (only difference with server)
   
   // prepare ra cert and add as extension
-  sgxStatus = enc_create_key_and_x509(id, ctx);
+  // epid
+  sgxStatus = enc_create_key_and_x509(id, ctx, &my_ra_tls_options);
+  // ecdsa
+  // sgxStatus = enc_create_key_and_x509_ecdsa(id, ctx);
+
   assert(sgxStatus == SGX_SUCCESS);
   // prepare ra cert and add as extension
   
@@ -148,6 +157,14 @@ int main(int argc, char* argv[]) /* not using since just testing w/ wc_test */
   }
 
   printf("Waiting for a connection...\n");
+
+  {
+    struct timeval t;
+    gettimeofday(&t, 0);
+    printf("timing(curl ra): %llu\n",
+      (unsigned long long) t.tv_sec*1000*1000
+      + (unsigned long long) t.tv_usec);
+  }
 
   /* Accept client connections */
   if ((connd = accept(sockfd, (struct sockaddr*)&clientAddr, &size))
@@ -178,6 +195,14 @@ int main(int argc, char* argv[]) /* not using since just testing w/ wc_test */
   if(sgxStatus != SGX_SUCCESS || ret == -1) {
       printf("Server failed to read\n");
       return EXIT_FAILURE;
+  }
+
+  {
+    struct timeval t;
+    gettimeofday(&t, 0);
+    printf("timing(curl ra): %llu\n",
+      (unsigned long long) t.tv_sec*1000*1000
+      + (unsigned long long) t.tv_usec);
   }
 
   /* Print to stdout any data the client sends */

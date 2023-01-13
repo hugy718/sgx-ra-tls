@@ -112,7 +112,7 @@ int is_epid_ratls_cert
     if (1 == rc) return 1;
 
     rc = find_oid(der_crt, der_crt_len,
-                   quote_oid, ias_oid_len,
+                   quote_oid, quote_oid_len,
                    &ext_data, &ext_data_len);
     if (1 == rc) return 0;
 
