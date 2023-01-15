@@ -24,7 +24,7 @@ if [[ "$QUOTE_TYPE" != "SGX_LINKABLE_SIGNATURE" ]] && \
     exit 1
 fi
 
-SPID_BYTE_ARRAY=$(echo $SPID | python -c 'import sys ; s = sys.stdin.readline().strip(); print("".join(["0x"+s[2*i:2*i+2]+"," for i in range(len(s)//2)]))')
+SPID_BYTE_ARRAY=$(echo $SPID | python3 -c 'import sys ; s = sys.stdin.readline().strip(); print("".join(["0x"+s[2*i:2*i+2]+"," for i in range(len(s)//2)]))')
 
 cat <<HEREDOC
 #include "attester.h" 
